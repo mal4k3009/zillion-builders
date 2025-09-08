@@ -100,7 +100,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       flex flex-col
     `}>
       <div className="p-6 border-b border-light-gray dark:border-soft-black">
-        <h2 className="text-lg font-semibold text-deep-charcoal dark:text-brand-gold">TaskFlow Pro</h2>
+        <h2 className="text-lg font-semibold text-deep-charcoal dark:text-brand-gold">Zillion Group Teams</h2>
         <p className="text-sm text-medium-gray capitalize">
           {state.currentUser?.role === 'master' ? 'Master Admin' : `${state.currentUser?.department} Admin`}
         </p>
