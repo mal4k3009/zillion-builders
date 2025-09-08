@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { ChatMessage } from '../../types';
 
 export function ChatPage() {
-  const { state, dispatch } = useApp();
+  const { state, sendChatMessage, createActivity, dispatch } = useApp();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -38,56 +38,50 @@ export function ChatPage() {
         payload: { senderId: selectedUserId, receiverId: state.currentUser.id }
       });
     }
-  }, [selectedUserId, state.currentUser, dispatch]);
+  }, [selectedUserId, state.currentUser]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || !selectedUserId || !state.currentUser) return;
 
-    const newMessage: ChatMessage = {
-      id: Date.now(),
+    const newMessage = {
       senderId: state.currentUser.id,
       receiverId: selectedUserId,
       content: message.trim(),
       timestamp: new Date().toISOString(),
-      type: 'text',
+      type: 'text' as const,
       isRead: false
     };
 
-    dispatch({ type: 'ADD_CHAT_MESSAGE', payload: newMessage });
+    await sendChatMessage(newMessage);
     
     // Add activity
-    dispatch({
-      type: 'ADD_ACTIVITY',
-      payload: {
-        id: Date.now(),
-        type: 'message_sent',
-        description: `Sent message to ${selectedUser?.name}`,
-        userId: state.currentUser.id,
-        timestamp: new Date().toISOString()
-      }
+    await createActivity({
+      type: 'message_sent',
+      description: `Sent message to ${selectedUser?.name}`,
+      userId: state.currentUser.id,
+      timestamp: new Date().toISOString()
     });
 
     setMessage('');
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !selectedUserId || !state.currentUser) return;
 
-    const newMessage: ChatMessage = {
-      id: Date.now(),
+    const newMessage = {
       senderId: state.currentUser.id,
       receiverId: selectedUserId,
       content: `📎 Shared a file: ${file.name}`,
       timestamp: new Date().toISOString(),
-      type: 'file',
+      type: 'file' as const,
       fileName: file.name,
       fileUrl: URL.createObjectURL(file),
       isRead: false
     };
 
-    dispatch({ type: 'ADD_CHAT_MESSAGE', payload: newMessage });
+    await sendChatMessage(newMessage);
   };
 
   const formatTime = (timestamp: string) => {

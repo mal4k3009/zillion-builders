@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, User, Mail, Lock, Building } from 'lucide-react';
 import { User as UserType } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { departments } from '../../data/mockData';
+
+const departments = [
+  { id: 'sales', name: 'Sales', color: '#10B981' },
+  { id: 'pr', name: 'Public Relations', color: '#8B5CF6' },
+  { id: 'marketing', name: 'Marketing', color: '#F59E0B' },
+  { id: 'operations', name: 'Operations', color: '#3B82F6' }
+];
 
 interface UserModalProps {
   isOpen: boolean;
@@ -12,7 +18,7 @@ interface UserModalProps {
 }
 
 export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
-  const { state, dispatch } = useApp();
+  const { state, createUser, updateUser, createActivity } = useApp();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -46,42 +52,39 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
     e.preventDefault();
     setLoading(true);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const userData = {
+        name: formData.name,
+        email: formData.email,
+        username: formData.username,
+        password: formData.password,
+        role: 'sub' as const,
+        department: formData.department,
+        status: user?.status || 'active' as const,
+        createdAt: user?.createdAt || new Date().toISOString(),
+        lastLogin: user?.lastLogin
+      };
 
-    const userData: UserType = {
-      id: user?.id || Date.now(),
-      name: formData.name,
-      email: formData.email,
-      username: formData.username,
-      password: formData.password,
-      role: 'sub',
-      department: formData.department,
-      status: user?.status || 'active',
-      createdAt: user?.createdAt || new Date().toISOString(),
-      lastLogin: user?.lastLogin
-    };
-
-    if (mode === 'create') {
-      dispatch({ type: 'ADD_USER', payload: userData });
-      
-      // Add activity
-      dispatch({
-        type: 'ADD_ACTIVITY',
-        payload: {
-          id: Date.now(),
+      if (mode === 'create') {
+        await createUser(userData);
+        
+        // Add activity
+        await createActivity({
           type: 'user_created',
           description: `Created new sub admin account for ${departments.find(d => d.id === formData.department)?.name} department`,
           userId: state.currentUser!.id,
           timestamp: new Date().toISOString()
-        }
-      });
-    } else {
-      dispatch({ type: 'UPDATE_USER', payload: userData });
-    }
+        });
+      } else {
+        await updateUser(user!.id, userData);
+      }
 
-    setLoading(false);
-    onClose();
+      onClose();
+    } catch (error) {
+      console.error('Error saving user:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;

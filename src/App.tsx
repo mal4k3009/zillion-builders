@@ -4,6 +4,7 @@ import { ToastProvider } from './components/notifications/ToastContainer';
 import { LoginPage } from './components/auth/LoginPage';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
+import { LoadingSpinner } from './components/layout/LoadingSpinner';
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { TasksPage } from './components/tasks/TasksPage';
 import { UsersPage } from './components/users/UsersPage';
@@ -15,7 +16,7 @@ import { CalendarPage } from './components/calendar/CalendarPage';
 import { SettingsPage } from './components/settings/SettingsPage';
 
 function AppContent() {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [currentPage, setCurrentPage] = useState('dashboard');
 
   useEffect(() => {
@@ -26,6 +27,11 @@ function AppContent() {
       document.documentElement.classList.remove('dark');
     }
   }, [state.theme]);
+
+  // Show loading spinner while data is being loaded
+  if (state.loading) {
+    return <LoadingSpinner />;
+  }
 
   if (!state.currentUser) {
     return <LoginPage />;
@@ -38,15 +44,15 @@ function AppContent() {
       case 'tasks':
         return <TasksPage />;
       case 'users':
-        return state.currentUser.role === 'master' ? <UsersPage /> : <DashboardPage />;
+        return state.currentUser?.role === 'master' ? <UsersPage /> : <DashboardPage />;
       case 'chat':
         return <ChatPage />;
       case 'notifications':
         return <NotificationsPage />;
       case 'analytics':
-        return state.currentUser.role === 'master' ? <AnalyticsPage /> : <DashboardPage />;
+        return state.currentUser?.role === 'master' ? <AnalyticsPage /> : <DashboardPage />;
       case 'whatsapp':
-        return state.currentUser.role === 'master' ? <WhatsAppPage /> : <DashboardPage />;
+        return state.currentUser?.role === 'master' ? <WhatsAppPage /> : <DashboardPage />;
       case 'calendar':
         return <CalendarPage />;
       case 'settings':
@@ -62,7 +68,7 @@ function AppContent() {
       {state.sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => state.dispatch({ type: 'TOGGLE_SIDEBAR' })}
+          onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
         />
       )}
       

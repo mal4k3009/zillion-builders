@@ -1,6 +1,25 @@
 import React from 'react';
 import { Search, Filter, Calendar, Flag } from 'lucide-react';
-import { departments, priorityLevels, taskStatuses } from '../../data/mockData';
+
+const departments = [
+  { id: 'sales', name: 'Sales', color: '#10B981' },
+  { id: 'pr', name: 'Public Relations', color: '#8B5CF6' },
+  { id: 'marketing', name: 'Marketing', color: '#F59E0B' },
+  { id: 'operations', name: 'Operations', color: '#3B82F6' }
+];
+
+const priorityLevels = [
+  { id: 'low', name: 'Low', color: '#6B7280' },
+  { id: 'medium', name: 'Medium', color: '#F59E0B' },
+  { id: 'high', name: 'High', color: '#EF4444' },
+  { id: 'urgent', name: 'Urgent', color: '#DC2626' }
+];
+
+const taskStatuses = [
+  { id: 'pending', name: 'Pending', color: '#6B7280' },
+  { id: 'in-progress', name: 'In Progress', color: '#F59E0B' },
+  { id: 'completed', name: 'Completed', color: '#10B981' }
+];
 
 interface TaskFiltersProps {
   searchTerm: string;

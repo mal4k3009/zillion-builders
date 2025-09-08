@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Grid, List } from 'lucide-react';
+import { Plus, Grid, List, CheckSquare } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
@@ -7,7 +7,7 @@ import { TaskFilters } from './TaskFilters';
 import { Task } from '../../types';
 
 export function TasksPage() {
-  const { state } = useApp();
+  const { state, deleteTask } = useApp();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
@@ -77,9 +77,9 @@ export function TasksPage() {
     setShowTaskModal(true);
   };
 
-  const handleDeleteTask = (taskId: number) => {
+  const handleDeleteTask = async (taskId: number) => {
     if (confirm('Are you sure you want to delete this task?')) {
-      state.dispatch({ type: 'DELETE_TASK', payload: taskId });
+      await deleteTask(taskId);
     }
   };
 

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Calendar, Flag, Users } from 'lucide-react';
+import { X, Plus, Calendar, Flag, User } from 'lucide-react';
 import { Task } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { departments, priorityLevels } from '../../data/mockData';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -11,8 +10,32 @@ interface TaskModalProps {
   mode: 'create' | 'edit' | 'view';
 }
 
+const departments = [
+  { id: 'sales', name: 'Sales', color: '#10B981' },
+  { id: 'pr', name: 'Public Relations', color: '#8B5CF6' },
+  { id: 'marketing', name: 'Marketing', color: '#F59E0B' },
+  { id: 'operations', name: 'Operations', color: '#3B82F6' }
+];
+
+const priorityLevels = [
+  { id: 'low', name: 'Low', color: '#6B7280' },
+  { id: 'medium', name: 'Medium', color: '#F59E0B' },
+  { id: 'high', name: 'High', color: '#EF4444' },
+  { id: 'urgent', name: 'Urgent', color: '#DC2626' }
+];
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
+
 export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
-  const { state, dispatch } = useApp();
+  const { state, createTask, updateTask, createNotification, createActivity } = useApp();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -44,11 +67,10 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
     }
   }, [task, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const taskData = {
-      id: task?.id || Date.now(),
       title: formData.title,
       description: formData.description,
       department: formData.department,
@@ -63,52 +85,43 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       attachments: task?.attachments || []
     };
 
-    if (mode === 'create') {
-      dispatch({ type: 'ADD_TASK', payload: taskData });
-      
-      // Add notification for assigned user
-      dispatch({
-        type: 'ADD_NOTIFICATION',
-        payload: {
-          id: Date.now(),
+    try {
+      if (mode === 'create') {
+        await createTask(taskData);
+        
+        // Add notification for assigned user
+        await createNotification({
           userId: parseInt(formData.assignedTo),
           title: 'New Task Assigned',
           message: `You have been assigned: ${formData.title}`,
           type: 'task',
           isRead: false,
           createdAt: new Date().toISOString(),
-          actionUrl: `/tasks/${taskData.id}`
-        }
-      });
+          actionUrl: `/tasks`
+        });
 
-      // Add activity
-      dispatch({
-        type: 'ADD_ACTIVITY',
-        payload: {
-          id: Date.now(),
+        // Add activity
+        await createActivity({
           type: 'task_created',
           description: `Created new task "${formData.title}" for ${departments.find(d => d.id === formData.department)?.name} department`,
           userId: state.currentUser!.id,
           timestamp: new Date().toISOString()
-        }
-      });
-    } else if (mode === 'edit') {
-      dispatch({ type: 'UPDATE_TASK', payload: taskData });
-      
-      // Add activity
-      dispatch({
-        type: 'ADD_ACTIVITY',
-        payload: {
-          id: Date.now(),
+        });
+      } else if (mode === 'edit') {
+        await updateTask(task!.id, taskData);
+        
+        // Add activity
+        await createActivity({
           type: 'task_updated',
           description: `Updated task "${formData.title}"`,
           userId: state.currentUser!.id,
           timestamp: new Date().toISOString()
-        }
-      });
+        });
+      }
+      onClose();
+    } catch (error) {
+      console.error('Error saving task:', error);
     }
-
-    onClose();
   };
 
   const departmentUsers = state.users.filter(u => 
@@ -116,6 +129,10 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   );
 
   if (!isOpen) return null;
+
+  const department = departments.find(d => d.id === task?.department);
+  const priority = priorityLevels.find(p => p.id === task?.priority);
+  const isOverdue = task ? new Date(task.dueDate) < new Date() && task.status !== 'completed' : false;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -319,24 +336,22 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                 </div>
               </div>
 
-              {mode !== 'view' && (
-                <div className="flex justify-end gap-4 pt-6">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    {mode === 'create' ? 'Create Task' : 'Update Task'}
-                  </button>
-                </div>
-              )}
+              <div className="flex justify-end gap-4 pt-6">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  {mode === 'create' ? 'Create Task' : 'Update Task'}
+                </button>
+              </div>
             </form>
           )}
         </div>

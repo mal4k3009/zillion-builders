@@ -5,7 +5,7 @@ import { UserModal } from './UserModal';
 import { User as UserType } from '../../types';
 
 export function UsersPage() {
-  const { state, dispatch } = useApp();
+  const { state, deleteUser, updateUser, createActivity } = useApp();
   const [showUserModal, setShowUserModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserType | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
@@ -31,31 +31,27 @@ export function UsersPage() {
     setShowUserModal(true);
   };
 
-  const handleDeleteUser = (userId: number) => {
+  const handleDeleteUser = async (userId: number) => {
     if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      dispatch({ type: 'DELETE_USER', payload: userId });
+      await deleteUser(userId);
       
       // Add activity
-      dispatch({
-        type: 'ADD_ACTIVITY',
-        payload: {
-          id: Date.now(),
-          type: 'user_created',
-          description: `Deleted sub admin account`,
-          userId: state.currentUser!.id,
-          timestamp: new Date().toISOString()
-        }
+      await createActivity({
+        type: 'user_created',
+        description: `Deleted sub admin account`,
+        userId: state.currentUser!.id,
+        timestamp: new Date().toISOString()
       });
     }
   };
 
-  const toggleUserStatus = (user: UserType) => {
+  const toggleUserStatus = async (user: UserType) => {
     const updatedUser = {
       ...user,
       status: user.status === 'active' ? 'inactive' : 'active'
     } as UserType;
     
-    dispatch({ type: 'UPDATE_USER', payload: updatedUser });
+    await updateUser(user.id, updatedUser);
   };
 
   const formatDate = (dateString: string) => {

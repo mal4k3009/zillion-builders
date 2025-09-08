@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import { User, Task, ChatMessage, Notification, WhatsAppMessage, Activity } from '../types';
-import { mockUsers, mockTasks, mockChatMessages, mockNotifications, mockWhatsAppMessages, mockActivities } from '../data/mockData';
+import { 
+  usersService, 
+  tasksService, 
+  chatService, 
+  notificationsService, 
+  whatsappService, 
+  activitiesService 
+} from '../firebase/services';
 
 interface AppState {
   currentUser: User | null;
@@ -12,25 +19,32 @@ interface AppState {
   activities: Activity[];
   theme: 'light' | 'dark';
   sidebarOpen: boolean;
+  loading: boolean;
 }
 
 type AppAction =
+  | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_CURRENT_USER'; payload: User | null }
+  | { type: 'SET_USERS'; payload: User[] }
   | { type: 'ADD_USER'; payload: User }
   | { type: 'UPDATE_USER'; payload: User }
   | { type: 'DELETE_USER'; payload: number }
+  | { type: 'SET_TASKS'; payload: Task[] }
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: Task }
   | { type: 'DELETE_TASK'; payload: number }
+  | { type: 'SET_CHAT_MESSAGES'; payload: ChatMessage[] }
   | { type: 'ADD_CHAT_MESSAGE'; payload: ChatMessage }
   | { type: 'MARK_MESSAGES_READ'; payload: { senderId: number; receiverId: number } }
+  | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
   | { type: 'ADD_NOTIFICATION'; payload: Notification }
   | { type: 'MARK_NOTIFICATION_READ'; payload: number }
+  | { type: 'SET_WHATSAPP_MESSAGES'; payload: WhatsAppMessage[] }
   | { type: 'ADD_WHATSAPP_MESSAGE'; payload: WhatsAppMessage }
+  | { type: 'SET_ACTIVITIES'; payload: Activity[] }
   | { type: 'ADD_ACTIVITY'; payload: Activity }
   | { type: 'TOGGLE_THEME' }
-  | { type: 'TOGGLE_SIDEBAR' }
-  | { type: 'LOAD_DATA' };
+  | { type: 'TOGGLE_SIDEBAR' };
 
 const initialState: AppState = {
   currentUser: null,
@@ -41,33 +55,25 @@ const initialState: AppState = {
   whatsappMessages: [],
   activities: [],
   theme: 'light',
-  sidebarOpen: true
+  sidebarOpen: true,
+  loading: false
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
-    case 'LOAD_DATA':
-      const savedData = localStorage.getItem('taskManagementApp');
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
-        return { ...state, ...parsed };
-      }
-      return {
-        ...state,
-        users: mockUsers,
-        tasks: mockTasks,
-        chatMessages: mockChatMessages,
-        notifications: mockNotifications,
-        whatsappMessages: mockWhatsAppMessages,
-        activities: mockActivities
-      };
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
 
     case 'SET_CURRENT_USER':
       return { ...state, currentUser: action.payload };
 
-    case 'ADD_USER':
+    case 'SET_USERS':
+      return { ...state, users: action.payload };
+
+    case 'ADD_USER': {
       const newUsers = [...state.users, action.payload];
       return { ...state, users: newUsers };
+    }
 
     case 'UPDATE_USER':
       return {
@@ -82,6 +88,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         users: state.users.filter(user => user.id !== action.payload)
       };
+
+    case 'SET_TASKS':
+      return { ...state, tasks: action.payload };
 
     case 'ADD_TASK':
       return { ...state, tasks: [...state.tasks, action.payload] };
@@ -100,6 +109,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
         tasks: state.tasks.filter(task => task.id !== action.payload)
       };
 
+    case 'SET_CHAT_MESSAGES':
+      return { ...state, chatMessages: action.payload };
+
     case 'ADD_CHAT_MESSAGE':
       return { ...state, chatMessages: [...state.chatMessages, action.payload] };
 
@@ -114,6 +126,9 @@ function appReducer(state: AppState, action: AppAction): AppState {
         )
       };
 
+    case 'SET_NOTIFICATIONS':
+      return { ...state, notifications: action.payload };
+
     case 'ADD_NOTIFICATION':
       return { ...state, notifications: [...state.notifications, action.payload] };
 
@@ -127,8 +142,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
         )
       };
 
+    case 'SET_WHATSAPP_MESSAGES':
+      return { ...state, whatsappMessages: action.payload };
+
     case 'ADD_WHATSAPP_MESSAGE':
       return { ...state, whatsappMessages: [...state.whatsappMessages, action.payload] };
+
+    case 'SET_ACTIVITIES':
+      return { ...state, activities: action.payload };
 
     case 'ADD_ACTIVITY':
       return { ...state, activities: [action.payload, ...state.activities] };
@@ -144,27 +165,173 @@ function appReducer(state: AppState, action: AppAction): AppState {
   }
 }
 
-const AppContext = createContext<{
+interface AppContextType {
   state: AppState;
   dispatch: React.Dispatch<AppAction>;
-} | null>(null);
+  // Firebase service methods
+  loadAllData: () => Promise<void>;
+  createTask: (taskData: Omit<Task, 'id'>) => Promise<void>;
+  updateTask: (id: number, taskData: Partial<Task>) => Promise<void>;
+  deleteTask: (id: number) => Promise<void>;
+  createUser: (userData: Omit<User, 'id'>) => Promise<void>;
+  updateUser: (id: number, userData: Partial<User>) => Promise<void>;
+  deleteUser: (id: number) => Promise<void>;
+  sendChatMessage: (messageData: Omit<ChatMessage, 'id'>) => Promise<void>;
+  createNotification: (notificationData: Omit<Notification, 'id'>) => Promise<void>;
+  markNotificationAsRead: (id: number) => Promise<void>;
+  createActivity: (activityData: Omit<Activity, 'id'>) => Promise<void>;
+}
+
+const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
+  // Load all data from Firebase
+  const loadAllData = async () => {
+    try {
+      dispatch({ type: 'SET_LOADING', payload: true });
+      
+      const [users, tasks, chatMessages, notifications, whatsappMessages, activities] = await Promise.all([
+        usersService.getAll(),
+        tasksService.getAll(),
+        chatService.getAll(),
+        notificationsService.getAll(),
+        whatsappService.getAll(),
+        activitiesService.getAll()
+      ]);
+
+      dispatch({ type: 'SET_USERS', payload: users });
+      dispatch({ type: 'SET_TASKS', payload: tasks });
+      dispatch({ type: 'SET_CHAT_MESSAGES', payload: chatMessages });
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
+      dispatch({ type: 'SET_WHATSAPP_MESSAGES', payload: whatsappMessages });
+      dispatch({ type: 'SET_ACTIVITIES', payload: activities });
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
+    }
+  };
+
+  // Task operations
+  const createTask = async (taskData: Omit<Task, 'id'>) => {
+    try {
+      await tasksService.create(taskData);
+      await loadAllData(); // Reload to get the updated data
+    } catch (error) {
+      console.error('Error creating task:', error);
+    }
+  };
+
+  const updateTask = async (id: number, taskData: Partial<Task>) => {
+    try {
+      await tasksService.update(id, taskData);
+      await loadAllData();
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+
+  const deleteTask = async (id: number) => {
+    try {
+      await tasksService.delete(id);
+      dispatch({ type: 'DELETE_TASK', payload: id });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
+  // User operations
+  const createUser = async (userData: Omit<User, 'id'>) => {
+    try {
+      await usersService.create(userData);
+      await loadAllData();
+    } catch (error) {
+      console.error('Error creating user:', error);
+    }
+  };
+
+  const updateUser = async (id: number, userData: Partial<User>) => {
+    try {
+      await usersService.update(id, userData);
+      await loadAllData();
+    } catch (error) {
+      console.error('Error updating user:', error);
+    }
+  };
+
+  const deleteUser = async (id: number) => {
+    try {
+      await usersService.delete(id);
+      dispatch({ type: 'DELETE_USER', payload: id });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+    }
+  };
+
+  // Chat operations
+  const sendChatMessage = async (messageData: Omit<ChatMessage, 'id'>) => {
+    try {
+      await chatService.send(messageData);
+      await loadAllData();
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+    }
+  };
+
+  // Notification operations
+  const createNotification = async (notificationData: Omit<Notification, 'id'>) => {
+    try {
+      await notificationsService.create(notificationData);
+      await loadAllData();
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
+  };
+
+  const markNotificationAsRead = async (id: number) => {
+    try {
+      await notificationsService.markAsRead(id);
+      dispatch({ type: 'MARK_NOTIFICATION_READ', payload: id });
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  // Activity operations
+  const createActivity = async (activityData: Omit<Activity, 'id'>) => {
+    try {
+      await activitiesService.create(activityData);
+      await loadAllData();
+    } catch (error) {
+      console.error('Error creating activity:', error);
+    }
+  };
+
+  // Load data on component mount
   useEffect(() => {
-    dispatch({ type: 'LOAD_DATA' });
+    loadAllData();
   }, []);
 
-  useEffect(() => {
-    const { currentUser, ...dataToSave } = state;
-    if (state.users.length > 0) {
-      localStorage.setItem('taskManagementApp', JSON.stringify(dataToSave));
-    }
-  }, [state]);
+  const contextValue: AppContextType = {
+    state,
+    dispatch,
+    loadAllData,
+    createTask,
+    updateTask,
+    deleteTask,
+    createUser,
+    updateUser,
+    deleteUser,
+    sendChatMessage,
+    createNotification,
+    markNotificationAsRead,
+    createActivity
+  };
 
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );
