@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { UserModal } from './UserModal';
 import { User as UserType } from '../../types';
 
+// Only master admin can access this page
 export function UsersPage() {
   const { state, deleteUser, updateUser, createActivity } = useApp();
   const [showUserModal, setShowUserModal] = useState(false);
