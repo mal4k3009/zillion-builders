@@ -23,3 +23,19 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Google Cloud Service Account Keys
+serviceAccountkey.json
+serviceAccountKey.json
+*service-account*.json
+
+# Firebase config files (if applicable)
+firebase-adminsdk*.json
+firebase-config.js
+firebase-config.json
+
+# Other sensitive files
+config/secrets.js
+config/secrets.json
+.env.local
+.env.production
