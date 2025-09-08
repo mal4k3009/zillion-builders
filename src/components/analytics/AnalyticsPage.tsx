@@ -5,6 +5,7 @@ import { departments } from '../../data/mockData';
 
 export function AnalyticsPage() {
   const { state } = useApp();
+  // Compute department-wise task statistics
 
   const getDepartmentTaskStats = () => {
     const stats = departments.map(dept => {
