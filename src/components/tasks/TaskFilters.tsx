@@ -28,28 +28,28 @@ export function TaskFilters({
   onDueDateChange
 }: TaskFiltersProps) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+    <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6 mb-6">
       <div className="flex items-center gap-2 mb-4">
-        <Filter className="w-5 h-5 text-gray-500" />
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filters</h3>
+        <Filter className="w-5 h-5 text-medium-gray" />
+        <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white">Filters</h3>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-medium-gray" />
           <input
             type="text"
             placeholder="Search tasks..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            className="w-full pl-10 pr-4 py-3 border border-light-gray dark:border-soft-black rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold dark:bg-dark-gray dark:text-pure-white"
           />
         </div>
 
         <select
           value={departmentFilter}
           onChange={(e) => onDepartmentChange(e.target.value)}
-          className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          className="px-4 py-3 border border-light-gray dark:border-soft-black rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold dark:bg-dark-gray dark:text-pure-white"
         >
           <option value="">All Departments</option>
           {departments.map(dept => (
@@ -62,7 +62,7 @@ export function TaskFilters({
         <select
           value={statusFilter}
           onChange={(e) => onStatusChange(e.target.value)}
-          className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          className="px-4 py-3 border border-light-gray dark:border-soft-black rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold dark:bg-dark-gray dark:text-pure-white"
         >
           <option value="">All Statuses</option>
           {taskStatuses.map(status => (
@@ -75,7 +75,7 @@ export function TaskFilters({
         <select
           value={priorityFilter}
           onChange={(e) => onPriorityChange(e.target.value)}
-          className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          className="px-4 py-3 border border-light-gray dark:border-soft-black rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold dark:bg-dark-gray dark:text-pure-white"
         >
           <option value="">All Priorities</option>
           {priorityLevels.map(priority => (
@@ -86,12 +86,12 @@ export function TaskFilters({
         </select>
 
         <div className="relative">
-          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-medium-gray" />
           <input
             type="date"
             value={dueDateFilter}
             onChange={(e) => onDueDateChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            className="w-full pl-10 pr-4 py-3 border border-light-gray dark:border-soft-black rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold dark:bg-dark-gray dark:text-pure-white"
           />
         </div>
       </div>

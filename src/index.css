@@ -1,3 +1,54 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* Zillion Group Brand Colors */
+    --brand-gold: #C8965F;
+    --accent-gold: #D4A574;
+    --deep-charcoal: #1A1A1A;
+    --soft-black: #2D2D2D;
+    --pure-white: #FFFFFF;
+    --off-white: #FAFAFA;
+    --light-gray: #E5E5E5;
+    --medium-gray: #666666;
+    --dark-gray: #3A4B5C;
+  }
+}
+
+/* Custom scrollbar for dark theme */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: var(--soft-black);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--brand-gold);
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold);
+}
+
+/* Light theme scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--light-gray);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--brand-gold);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-gold);
+}

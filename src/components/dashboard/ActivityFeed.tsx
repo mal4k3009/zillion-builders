@@ -50,9 +50,9 @@ export function ActivityFeed() {
     .slice(0, 10);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
+    <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black">
+      <div className="p-6 border-b border-light-gray dark:border-soft-black">
+        <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white">Recent Activity</h3>
       </div>
       <div className="p-6">
         <div className="space-y-4">
@@ -64,15 +64,15 @@ export function ActivityFeed() {
                   {getActivityIcon(activity.type)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900 dark:text-white">
+                  <p className="text-sm text-deep-charcoal dark:text-pure-white">
                     {activity.description}
                   </p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-medium-gray">
                       {user?.name || 'System'}
                     </span>
-                    <span className="text-xs text-gray-400">•</span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                    <span className="text-xs text-medium-gray">•</span>
+                    <span className="text-xs text-medium-gray">
                       {formatTimeAgo(activity.timestamp)}
                     </span>
                   </div>

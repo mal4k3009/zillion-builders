@@ -71,28 +71,28 @@ export function UsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-2xl font-bold text-deep-charcoal dark:text-pure-white">
           User Management
         </h1>
         <button
           onClick={handleCreateUser}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-brand-gold hover:bg-accent-gold text-pure-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Sub Admin
         </button>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
         <div className="mb-6">
           <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-medium-gray" />
             <input
               type="text"
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              className="w-full pl-10 pr-4 py-3 border border-light-gray dark:border-soft-black rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold dark:bg-dark-gray dark:text-pure-white"
             />
           </div>
         </div>
@@ -100,34 +100,34 @@ export function UsersPage() {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">User</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Department</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Status</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Last Login</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-700 dark:text-gray-300">Actions</th>
+              <tr className="border-b border-light-gray dark:border-soft-black">
+                <th className="text-left py-3 px-4 text-sm font-medium text-deep-charcoal dark:text-pure-white">User</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-deep-charcoal dark:text-pure-white">Department</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-deep-charcoal dark:text-pure-white">Status</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-deep-charcoal dark:text-pure-white">Last Login</th>
+                <th className="text-left py-3 px-4 text-sm font-medium text-deep-charcoal dark:text-pure-white">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.map((user) => (
-                <tr key={user.id} className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <tr key={user.id} className="border-b border-light-gray dark:border-soft-black hover:bg-off-white dark:hover:bg-soft-black transition-colors">
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
+                      <div className="w-10 h-10 bg-brand-gold rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-pure-white" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        <p className="text-sm font-medium text-deep-charcoal dark:text-pure-white">
                           {user.name}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-medium-gray">
                           {user.email}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className="py-4 px-4">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs font-medium rounded-full capitalize">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-brand-gold/20 text-brand-gold text-xs font-medium rounded-full capitalize">
                       <Shield className="w-3 h-3" />
                       {user.department}
                     </span>
@@ -144,20 +144,20 @@ export function UsersPage() {
                       {user.status === 'active' ? '● Active' : '● Inactive'}
                     </button>
                   </td>
-                  <td className="py-4 px-4 text-sm text-gray-500 dark:text-gray-400">
+                  <td className="py-4 px-4 text-sm text-medium-gray">
                     {user.lastLogin ? formatDate(user.lastLogin) : 'Never'}
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleEditUser(user)}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                        className="p-2 text-medium-gray hover:text-brand-gold hover:bg-brand-gold/10 rounded-lg transition-colors"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteUser(user.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                        className="p-2 text-medium-gray hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -171,9 +171,9 @@ export function UsersPage() {
 
         {filteredUsers.length === 0 && (
           <div className="text-center py-12">
-            <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No users found</h3>
-            <p className="text-gray-500 dark:text-gray-400">
+            <User className="w-12 h-12 text-medium-gray mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-deep-charcoal dark:text-pure-white mb-2">No users found</h3>
+            <p className="text-medium-gray">
               {searchTerm ? 'Try adjusting your search criteria.' : 'Create your first sub admin to get started.'}
             </p>
           </div>

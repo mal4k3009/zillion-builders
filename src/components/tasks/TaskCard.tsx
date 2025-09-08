@@ -63,16 +63,16 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
 
   return (
     <div className={`
-      bg-white dark:bg-gray-800 rounded-xl shadow-sm border-l-4 p-6 
+      bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border-l-4 p-6 
       hover:shadow-md transition-all duration-200
       ${isOverdue ? 'border-l-red-500 bg-red-50/30 dark:bg-red-900/10' : `border-l-[${department?.color}]`}
     `}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-2">
             {task.title}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+          <p className="text-sm text-medium-gray line-clamp-2">
             {task.description}
           </p>
         </div>
@@ -81,23 +81,23 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
           <div className="relative">
             <button
               onClick={() => setShowActions(!showActions)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-off-white dark:hover:bg-soft-black rounded-lg transition-colors"
             >
-              <MoreHorizontal className="w-4 h-4 text-gray-500" />
+              <MoreHorizontal className="w-4 h-4 text-medium-gray" />
             </button>
             
             {showActions && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 py-2 z-10">
+              <div className="absolute right-0 top-full mt-2 w-48 bg-pure-white dark:bg-dark-gray rounded-lg shadow-lg border border-light-gray dark:border-soft-black py-2 z-10">
                 <button
                   onClick={() => { onView?.(task); setShowActions(false); }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-deep-charcoal dark:text-pure-white hover:bg-off-white dark:hover:bg-soft-black"
                 >
                   <Eye className="w-4 h-4" />
                   View Details
                 </button>
                 <button
                   onClick={() => { onEdit?.(task); setShowActions(false); }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-deep-charcoal dark:text-pure-white hover:bg-off-white dark:hover:bg-soft-black"
                 >
                   <Edit className="w-4 h-4" />
                   Edit Task
@@ -121,7 +121,7 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
             className="w-3 h-3 rounded-full" 
             style={{ backgroundColor: department?.color }}
           />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          <span className="text-sm font-medium text-deep-charcoal dark:text-pure-white">
             {department?.name}
           </span>
         </div>
@@ -136,13 +136,13 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
 
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <User className="w-4 h-4 text-gray-500" />
-          <span className="text-sm text-gray-600 dark:text-gray-400">
+          <User className="w-4 h-4 text-medium-gray" />
+          <span className="text-sm text-medium-gray">
             {assignedUser?.name || 'Unassigned'}
           </span>
         </div>
 
-        <div className={`flex items-center gap-1 text-sm ${isOverdue ? 'text-red-600' : 'text-gray-600 dark:text-gray-400'}`}>
+        <div className={`flex items-center gap-1 text-sm ${isOverdue ? 'text-red-600' : 'text-medium-gray'}`}>
           <Calendar className="w-4 h-4" />
           <span>{formatDate(task.dueDate)}</span>
         </div>
@@ -151,14 +151,14 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           {task.comments.length > 0 && (
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-1 text-medium-gray">
               <MessageSquare className="w-4 h-4" />
               <span className="text-xs">{task.comments.length}</span>
             </div>
           )}
           
           {task.attachments.length > 0 && (
-            <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-1 text-medium-gray">
               <Paperclip className="w-4 h-4" />
               <span className="text-xs">{task.attachments.length}</span>
             </div>
@@ -169,7 +169,7 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
           <select
             value={task.status}
             onChange={(e) => handleStatusChange(e.target.value)}
-            className="text-sm px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="text-sm px-3 py-1 rounded-lg border border-light-gray dark:border-soft-black bg-pure-white dark:bg-dark-gray text-deep-charcoal dark:text-pure-white focus:outline-none focus:ring-2 focus:ring-brand-gold"
           >
             {taskStatuses.map(status => (
               <option key={status.id} value={status.id}>

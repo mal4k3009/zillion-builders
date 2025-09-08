@@ -85,13 +85,13 @@ export function DashboardCards() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
       {cards.map((card, index) => (
-        <div key={index} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow duration-200">
+        <div key={index} className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+              <p className="text-sm font-medium text-medium-gray mb-1">
                 {card.title}
               </p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">
+              <p className="text-3xl font-bold text-deep-charcoal dark:text-pure-white">
                 {card.value}
               </p>
               <div className="flex items-center mt-2">
@@ -100,10 +100,10 @@ export function DashboardCards() {
                 }`}>
                   {card.change}
                 </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">vs last month</span>
+                <span className="text-sm text-medium-gray ml-1">vs last month</span>
               </div>
             </div>
-            <div className={`${card.color} p-3 rounded-xl text-white`}>
+            <div className={`${card.color === 'bg-blue-500' ? 'bg-brand-gold' : card.color} p-3 rounded-xl text-white`}>
               {card.icon}
             </div>
           </div>

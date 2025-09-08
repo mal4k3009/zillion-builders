@@ -25,15 +25,15 @@ export function Header() {
 
   return (
     <>
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-16 flex items-center justify-between px-6 relative z-30">
+      <header className="bg-pure-white dark:bg-soft-black border-b border-light-gray dark:border-deep-charcoal h-16 flex items-center justify-between px-6 relative z-30">
         <div className="flex items-center gap-4">
           <button
             onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-            className="lg:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="lg:hidden p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors"
           >
-            {state.sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {state.sidebarOpen ? <X className="w-5 h-5 text-deep-charcoal dark:text-pure-white" /> : <Menu className="w-5 h-5 text-deep-charcoal dark:text-pure-white" />}
           </button>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h1 className="text-xl font-semibold text-deep-charcoal dark:text-pure-white">
             {state.currentUser?.role === 'master' ? 'Master Dashboard' : `${state.currentUser?.department} Dashboard`}
           </h1>
         </div>
@@ -41,22 +41,22 @@ export function Header() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => dispatch({ type: 'TOGGLE_THEME' })}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors"
           >
             {state.theme === 'light' ? 
-              <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" /> : 
-              <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <Moon className="w-5 h-5 text-medium-gray" /> : 
+              <Sun className="w-5 h-5 text-medium-gray" />
             }
           </button>
 
           <div className="relative">
             <button
               onClick={() => setShowChat(!showChat)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative"
+              className="p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors relative"
             >
-              <MessageSquare className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <MessageSquare className="w-5 h-5 text-medium-gray" />
               {unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-brand-gold text-pure-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {unreadMessages > 9 ? '9+' : unreadMessages}
                 </span>
               )}
@@ -66,11 +66,11 @@ export function Header() {
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors relative"
+              className="p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors relative"
             >
-              <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <Bell className="w-5 h-5 text-medium-gray" />
               {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-brand-gold text-pure-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {unreadNotifications > 9 ? '9+' : unreadNotifications}
                 </span>
               )}
@@ -80,21 +80,21 @@ export function Header() {
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="flex items-center gap-2 p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors"
             >
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 bg-brand-gold rounded-full flex items-center justify-center">
+                <User className="w-4 h-4 text-pure-white" />
               </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block">
+              <span className="text-sm font-medium text-deep-charcoal dark:text-pure-white hidden sm:block">
                 {state.currentUser?.name}
               </span>
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
-                <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{state.currentUser?.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{state.currentUser?.email}</p>
+              <div className="absolute right-0 top-full mt-2 w-48 bg-pure-white dark:bg-dark-gray rounded-lg shadow-lg border border-light-gray dark:border-soft-black py-2">
+                <div className="px-4 py-2 border-b border-light-gray dark:border-soft-black">
+                  <p className="text-sm font-medium text-deep-charcoal dark:text-pure-white">{state.currentUser?.name}</p>
+                  <p className="text-xs text-medium-gray">{state.currentUser?.email}</p>
                 </div>
                 <button
                   onClick={handleLogout}

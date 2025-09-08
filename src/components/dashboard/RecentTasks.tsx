@@ -25,11 +25,11 @@ export function RecentTasks() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-      <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black">
+      <div className="p-6 border-b border-light-gray dark:border-soft-black">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Tasks</h3>
-          <button className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
+          <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white">Recent Tasks</h3>
+          <button className="text-sm text-brand-gold hover:text-accent-gold font-medium flex items-center gap-1">
             View All
             <ArrowRight className="w-3 h-3" />
           </button>
@@ -45,21 +45,21 @@ export function RecentTasks() {
             const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed';
 
             return (
-              <div key={task.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+              <div key={task.id} className="flex items-center justify-between p-4 bg-off-white dark:bg-soft-black rounded-lg hover:bg-light-gray dark:hover:bg-dark-gray transition-colors cursor-pointer">
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  <h4 className="text-sm font-medium text-deep-charcoal dark:text-pure-white truncate">
                     {task.title}
                   </h4>
                   <div className="flex items-center gap-3 mt-1">
                     <div className="flex items-center gap-1">
                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: department?.color }} />
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <span className="text-xs text-medium-gray">
                         {department?.name}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <User className="w-3 h-3 text-gray-400" />
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                      <User className="w-3 h-3 text-medium-gray" />
+                      <span className="text-xs text-medium-gray">
                         {assignedUser?.name}
                       </span>
                     </div>
@@ -75,7 +75,7 @@ export function RecentTasks() {
                     {priority?.name}
                   </div>
                   
-                  <div className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-red-600' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <div className={`flex items-center gap-1 text-xs ${isOverdue ? 'text-red-600' : 'text-medium-gray'}`}>
                     <Calendar className="w-3 h-3" />
                     {formatDate(task.dueDate)}
                   </div>

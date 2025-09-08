@@ -48,15 +48,15 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-deep-charcoal via-soft-black to-deep-charcoal flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20">
           <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center mb-4">
-              <Shield className="w-8 h-8 text-white" />
+            <div className="mx-auto w-16 h-16 bg-brand-gold rounded-2xl flex items-center justify-center mb-4">
+              <Shield className="w-8 h-8 text-pure-white" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">TaskFlow Pro</h1>
-            <p className="text-blue-100">Enterprise Task Management System</p>
+            <h1 className="text-3xl font-bold text-pure-white mb-2">TaskFlow Pro</h1>
+            <p className="text-accent-gold">Enterprise Task Management System</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
@@ -67,21 +67,21 @@ export function LoginPage() {
             )}
 
             <div>
-              <label className="block text-blue-100 text-sm font-medium mb-2">
+              <label className="block text-accent-gold text-sm font-medium mb-2">
                 Username
               </label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-accent-gold/70 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:border-transparent transition-all"
                 placeholder="Enter your username"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-blue-100 text-sm font-medium mb-2">
+              <label className="block text-accent-gold text-sm font-medium mb-2">
                 Password
               </label>
               <div className="relative">
@@ -89,14 +89,14 @@ export function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all pr-12"
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-accent-gold/70 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:border-transparent transition-all pr-12"
                   placeholder="Enter your password"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-200 hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-accent-gold hover:text-pure-white transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -106,10 +106,10 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
+              className="w-full bg-brand-gold hover:bg-accent-gold disabled:bg-brand-gold/50 text-pure-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2"
             >
               {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-white/30 border-t-pure-white rounded-full animate-spin" />
               ) : (
                 <>
                   <LogIn className="w-5 h-5" />
@@ -120,29 +120,29 @@ export function LoginPage() {
           </form>
 
           <div className="mt-8 pt-6 border-t border-white/20">
-            <p className="text-blue-100 text-sm text-center mb-4">Quick Login (Demo)</p>
+            <p className="text-accent-gold text-sm text-center mb-4">Quick Login (Demo)</p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => quickLogin('master')}
-                className="px-3 py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-100 text-xs rounded-lg transition-colors"
+                className="px-3 py-2 bg-brand-gold/20 hover:bg-brand-gold/30 text-accent-gold text-xs rounded-lg transition-colors"
               >
                 Master Admin
               </button>
               <button
                 onClick={() => quickLogin('sales')}
-                className="px-3 py-2 bg-green-600/20 hover:bg-green-600/30 text-green-100 text-xs rounded-lg transition-colors"
+                className="px-3 py-2 bg-green-600/20 hover:bg-green-600/30 text-green-200 text-xs rounded-lg transition-colors"
               >
                 Sales Admin
               </button>
               <button
                 onClick={() => quickLogin('pr')}
-                className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-100 text-xs rounded-lg transition-colors"
+                className="px-3 py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 text-xs rounded-lg transition-colors"
               >
                 PR Admin
               </button>
               <button
                 onClick={() => quickLogin('marketing')}
-                className="px-3 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-100 text-xs rounded-lg transition-colors"
+                className="px-3 py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-200 text-xs rounded-lg transition-colors"
               >
                 Marketing Admin
               </button>

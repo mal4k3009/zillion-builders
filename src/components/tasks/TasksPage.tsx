@@ -86,17 +86,17 @@ export function TasksPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-2xl font-bold text-deep-charcoal dark:text-pure-white">
           Task Management
         </h1>
         <div className="flex items-center gap-4">
-          <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+          <div className="flex bg-off-white dark:bg-soft-black rounded-lg p-1">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-2 rounded-md transition-colors ${
                 viewMode === 'grid' 
-                  ? 'bg-white dark:bg-gray-600 shadow-sm' 
-                  : 'hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? 'bg-pure-white dark:bg-dark-gray shadow-sm' 
+                  : 'hover:bg-light-gray dark:hover:bg-dark-gray'
               }`}
             >
               <Grid className="w-4 h-4" />
@@ -105,8 +105,8 @@ export function TasksPage() {
               onClick={() => setViewMode('list')}
               className={`p-2 rounded-md transition-colors ${
                 viewMode === 'list' 
-                  ? 'bg-white dark:bg-gray-600 shadow-sm' 
-                  : 'hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? 'bg-pure-white dark:bg-dark-gray shadow-sm' 
+                  : 'hover:bg-light-gray dark:hover:bg-dark-gray'
               }`}
             >
               <List className="w-4 h-4" />
@@ -116,7 +116,7 @@ export function TasksPage() {
           {state.currentUser?.role === 'master' && (
             <button
               onClick={handleCreateTask}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              className="bg-brand-gold hover:bg-accent-gold text-pure-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
             >
               <Plus className="w-4 h-4" />
               New Task
@@ -140,9 +140,9 @@ export function TasksPage() {
 
       {filteredTasks.length === 0 ? (
         <div className="text-center py-12">
-          <CheckSquare className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No tasks found</h3>
-          <p className="text-gray-500 dark:text-gray-400">
+          <CheckSquare className="w-12 h-12 text-medium-gray mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-deep-charcoal dark:text-pure-white mb-2">No tasks found</h3>
+          <p className="text-medium-gray">
             {state.currentUser?.role === 'master' 
               ? 'Create your first task to get started.' 
               : 'No tasks have been assigned to your department yet.'

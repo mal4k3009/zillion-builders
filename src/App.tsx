@@ -57,7 +57,7 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="min-h-screen bg-off-white dark:bg-deep-charcoal transition-colors">
       {/* Overlay for mobile sidebar */}
       {state.sidebarOpen && (
         <div 
