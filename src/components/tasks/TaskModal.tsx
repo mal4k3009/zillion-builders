@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Calendar, Flag, User } from 'lucide-react';
 import { Task } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { notificationService } from '../../services/notificationService';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -89,6 +90,9 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       if (mode === 'create') {
         await createTask(taskData);
         
+        // Find the assigned user
+        const assignedUser = state.users.find(u => u.id === parseInt(formData.assignedTo));
+        
         // Add notification for assigned user
         await createNotification({
           userId: parseInt(formData.assignedTo),
@@ -100,6 +104,15 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
           actionUrl: `/tasks`
         });
 
+        // Send browser push notification
+        if (assignedUser) {
+          await notificationService.sendTaskAssignedNotification(
+            assignedUser,
+            formData.title,
+            state.currentUser?.name || 'Master Admin'
+          );
+        }
+
         // Add activity
         await createActivity({
           type: 'task_created',
@@ -109,6 +122,12 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
         });
       } else if (mode === 'edit') {
         await updateTask(task!.id, taskData);
+        
+        // If task status changed to completed, send notification
+        if (task?.status !== 'completed' && taskData.status === 'completed') {
+          const completedBy = state.currentUser?.name || 'User';
+          await notificationService.sendTaskCompletedNotification(completedBy, formData.title);
+        }
         
         // Add activity
         await createActivity({

@@ -3,6 +3,7 @@ import { Bell, MessageSquare, Sun, Moon, User, LogOut, Menu, X } from 'lucide-re
 import { useApp } from '../../context/AppContext';
 import { NotificationPanel } from '../notifications/NotificationPanel';
 import { ChatPanel } from '../chat/ChatPanel';
+import { NotificationStatus } from '../notifications/NotificationPermissionBanner';
 
 export function Header() {
   const { state, dispatch } = useApp();
@@ -39,6 +40,8 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
+          <NotificationStatus />
+          
           <button
             onClick={() => dispatch({ type: 'TOGGLE_THEME' })}
             className="p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors"

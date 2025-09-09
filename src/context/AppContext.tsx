@@ -8,6 +8,7 @@ import {
   whatsappService, 
   activitiesService 
 } from '../firebase/services';
+import { taskMonitoringService } from '../services/taskMonitoringService';
 
 interface AppState {
   currentUser: User | null;
@@ -180,6 +181,7 @@ interface AppContextType {
   createNotification: (notificationData: Omit<Notification, 'id'>) => Promise<void>;
   markNotificationAsRead: (id: number) => Promise<void>;
   createActivity: (activityData: Omit<Activity, 'id'>) => Promise<void>;
+  setCurrentUser: (user: User, fcmToken?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -207,6 +209,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
       dispatch({ type: 'SET_WHATSAPP_MESSAGES', payload: whatsappMessages });
       dispatch({ type: 'SET_ACTIVITIES', payload: activities });
+
+      // Initialize task monitoring service with users data
+      taskMonitoringService.initialize(users);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -309,6 +314,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // User login and FCM token management
+  const setCurrentUser = async (user: User, fcmToken?: string) => {
+    try {
+      dispatch({ type: 'SET_CURRENT_USER', payload: user });
+      
+      // If FCM token is provided, store it in the user's document
+      if (fcmToken) {
+        await usersService.updateFCMToken(user.id, fcmToken);
+      }
+    } catch (error) {
+      console.error('Error setting current user:', error);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     loadAllData();
@@ -327,7 +346,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     sendChatMessage,
     createNotification,
     markNotificationAsRead,
-    createActivity
+    createActivity,
+    setCurrentUser
   };
 
   return (

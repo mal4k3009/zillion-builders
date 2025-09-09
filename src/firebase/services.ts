@@ -57,6 +57,14 @@ export const usersService = {
 
   async delete(id: number): Promise<void> {
     await deleteDoc(doc(db, 'users', id.toString()));
+  },
+
+  async updateFCMToken(userId: number, fcmToken: string): Promise<void> {
+    const docRef = doc(db, 'users', userId.toString());
+    await updateDoc(docRef, { 
+      fcmToken: fcmToken,
+      lastTokenUpdate: serverTimestamp()
+    });
   }
 };
 

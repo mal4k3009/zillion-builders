@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { LogIn, Eye, EyeOff, Shield } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { requestNotificationPermission } from '../../firebase/messaging';
 
 export function LoginPage() {
-  const { state, dispatch } = useApp();
+  const { state, setCurrentUser } = useApp();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -23,9 +24,13 @@ export function LoginPage() {
     );
 
     if (user) {
+      // Try to get FCM token for push notifications
+      const fcmToken = await requestNotificationPermission();
+      
       const updatedUser = { ...user, lastLogin: new Date().toISOString() };
-      dispatch({ type: 'UPDATE_USER', payload: updatedUser });
-      dispatch({ type: 'SET_CURRENT_USER', payload: updatedUser });
+      
+      // Set current user with FCM token
+      await setCurrentUser(updatedUser, fcmToken || undefined);
     } else {
       setError('Invalid credentials or account is inactive');
     }
