@@ -80,7 +80,13 @@ export function TasksPage() {
 
   const handleDeleteTask = async (taskId: number) => {
     if (confirm('Are you sure you want to delete this task?')) {
-      await deleteTask(taskId);
+      try {
+        await deleteTask(taskId);
+        // Task deleted successfully - UI will update automatically
+      } catch (error) {
+        console.error('Failed to delete task:', error);
+        alert('Failed to delete task. Please try again.');
+      }
     }
   };
 

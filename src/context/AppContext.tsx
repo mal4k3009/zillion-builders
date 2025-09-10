@@ -171,7 +171,7 @@ interface AppContextType {
   dispatch: React.Dispatch<AppAction>;
   // Firebase service methods
   loadAllData: () => Promise<void>;
-  createTask: (taskData: Omit<Task, 'id'>) => Promise<void>;
+  createTask: (taskData: Omit<Task, 'id'>) => Promise<string>;
   updateTask: (id: number, taskData: Partial<Task>) => Promise<void>;
   deleteTask: (id: number) => Promise<void>;
   createUser: (userData: Omit<User, 'id'>) => Promise<void>;
@@ -220,12 +220,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Task operations
-  const createTask = async (taskData: Omit<Task, 'id'>) => {
+  const createTask = async (taskData: Omit<Task, 'id'>): Promise<string> => {
     try {
-      await tasksService.create(taskData);
+      const taskId = await tasksService.create(taskData);
       await loadAllData(); // Reload to get the updated data
+      return taskId;
     } catch (error) {
       console.error('Error creating task:', error);
+      throw error;
     }
   };
 
@@ -242,8 +244,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       await tasksService.delete(id);
       dispatch({ type: 'DELETE_TASK', payload: id });
+      // Reload data to ensure sync
+      await loadAllData();
     } catch (error) {
       console.error('Error deleting task:', error);
+      throw error; // Re-throw to let UI handle error
     }
   };
 

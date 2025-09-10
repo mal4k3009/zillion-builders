@@ -88,7 +88,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
 
     try {
       if (mode === 'create') {
-        await createTask(taskData);
+        const taskId = await createTask(taskData);
         
         // Find the assigned user
         const assignedUser = state.users.find(u => u.id === parseInt(formData.assignedTo));
@@ -104,12 +104,13 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
           actionUrl: `/tasks`
         });
 
-        // Send browser push notification
+        // Send real push notification to phone
         if (assignedUser) {
           await notificationService.sendTaskAssignedNotification(
             assignedUser,
             formData.title,
-            state.currentUser?.name || 'Master Admin'
+            state.currentUser?.name || 'Master Admin',
+            taskId // Pass the actual task ID
           );
         }
 

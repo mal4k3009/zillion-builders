@@ -53,35 +53,71 @@ class NotificationService {
     return this.fcmToken;
   }
 
-  async sendTaskAssignedNotification(assignedUser: User, taskTitle: string, assignedBy: string) {
-    if (!this.hasPermission) {
-      console.log('No notification permission');
-      return;
+  async sendTaskAssignedNotification(assignedUser: User, taskTitle: string, assignedBy: string, taskId?: string) {
+    // Always try to send server-side push notification for real phone notifications
+    try {
+      await this.sendServerNotification(taskId || 'unknown', assignedUser.id.toString(), assignedBy, taskTitle);
+    } catch (error) {
+      console.error('Failed to send server notification:', error);
     }
 
-    const notificationData: NotificationData = {
-      title: '📋 New Task Assigned',
-      body: `Hi ${assignedUser.name}!\n\nYou have been assigned a new task:\n"${taskTitle}"\n\nAssigned by: ${assignedBy}\n\nPlease check your dashboard for details.`,
-      icon: '/favicon.ico',
-      tag: 'task-assigned',
-      data: {
-        type: 'task_assigned',
-        taskTitle,
-        assignedTo: assignedUser.id,
-        assignedBy
+    // Also send browser notification as fallback
+    if (this.hasPermission) {
+      const notificationData: NotificationData = {
+        title: '📋 New Task Assigned',
+        body: `${assignedBy} assigned you: "${taskTitle}"`,
+        icon: '/favicon.ico',
+        tag: 'task-assigned',
+        data: {
+          type: 'task_assigned',
+          taskTitle,
+          assignedTo: assignedUser.id,
+          assignedBy,
+          taskId: taskId || 'unknown'
+        }
+      };
+
+      sendBrowserNotification(notificationData.title, {
+        body: notificationData.body,
+        icon: notificationData.icon,
+        tag: notificationData.tag,
+        requireInteraction: true,
+        data: notificationData.data
+      });
+
+      // Also play a notification sound if supported
+      this.playNotificationSound();
+    }
+  }
+
+  // Server-side push notification method
+  private async sendServerNotification(taskId: string, assignedUserId: string, assignedByUserId: string, taskTitle: string) {
+    try {
+      // Call the local API server for push notifications
+      const response = await fetch('http://localhost:3001/api/send-push-notification', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId,
+          assignedUserId,
+          assignedByUserId,
+          taskTitle
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
 
-    sendBrowserNotification(notificationData.title, {
-      body: notificationData.body,
-      icon: notificationData.icon,
-      tag: notificationData.tag,
-      requireInteraction: true,
-      data: notificationData.data
-    });
-
-    // Also play a notification sound if supported
-    this.playNotificationSound();
+      const result = await response.json();
+      console.log('Server notification sent:', result);
+      return result.success;
+    } catch (error) {
+      console.error('Error sending server notification:', error);
+      return false;
+    }
   }
 
   async sendTaskCompletedNotification(completedBy: string, taskTitle: string) {
