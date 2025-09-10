@@ -182,6 +182,7 @@ interface AppContextType {
   markNotificationAsRead: (id: number) => Promise<void>;
   createActivity: (activityData: Omit<Activity, 'id'>) => Promise<void>;
   setCurrentUser: (user: User, fcmToken?: string) => Promise<void>;
+  logout: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -212,6 +213,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Initialize task monitoring service with users data
       taskMonitoringService.initialize(users);
+      
+      // Restore user session after users are loaded
+      setTimeout(() => restoreUserSession(), 100);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -324,19 +328,81 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'SET_CURRENT_USER', payload: user });
       
+      // Save session to localStorage (expires in 30 days)
+      const sessionData = {
+        userId: user.id,
+        expiry: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+      };
+      localStorage.setItem('zillion_user_session', JSON.stringify(sessionData));
+      console.log('💾 User session saved for:', user.name);
+      
       // If FCM token is provided, store it in the user's document
       if (fcmToken) {
         await usersService.updateFCMToken(user.id, fcmToken);
+        console.log('🔔 FCM token stored for user:', user.name);
       }
     } catch (error) {
       console.error('Error setting current user:', error);
     }
   };
 
-  // Load data on component mount
+  // Logout function
+  const logout = () => {
+    dispatch({ type: 'SET_CURRENT_USER', payload: null });
+    localStorage.removeItem('zillion_user_session');
+    console.log('👋 User logged out');
+  };
+
+  // Load data and check for existing session on component mount
   useEffect(() => {
-    loadAllData();
-  }, []);
+    const initializeApp = async () => {
+      await loadAllData();
+      restoreUserSession();
+    };
+    initializeApp();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Restore user session from localStorage
+  const restoreUserSession = () => {
+    try {
+      const savedSession = localStorage.getItem('zillion_user_session');
+      if (savedSession) {
+        const sessionData = JSON.parse(savedSession);
+        
+        // Wait for users to be loaded first
+        if (state.users.length > 0) {
+          const user = state.users.find(u => u.id === sessionData.userId);
+          if (user && sessionData.expiry > Date.now()) {
+            console.log('🔄 Restoring user session for:', user.name);
+            dispatch({ type: 'SET_CURRENT_USER', payload: user });
+            
+            // Re-initialize FCM token for this user
+            initializeFCMForUser(user);
+          } else {
+            localStorage.removeItem('zillion_user_session');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error restoring session:', error);
+      localStorage.removeItem('zillion_user_session');
+    }
+  };
+
+  // Initialize FCM token for logged in user
+  const initializeFCMForUser = async (user: User) => {
+    try {
+      const { requestNotificationPermission } = await import('../firebase/messaging');
+      const fcmToken = await requestNotificationPermission();
+      
+      if (fcmToken) {
+        await usersService.updateFCMToken(user.id, fcmToken);
+        console.log('🔔 FCM token updated for user:', user.name);
+      }
+    } catch (error) {
+      console.error('Error initializing FCM for user:', error);
+    }
+  };
 
   const contextValue: AppContextType = {
     state,
@@ -352,7 +418,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createNotification,
     markNotificationAsRead,
     createActivity,
-    setCurrentUser
+    setCurrentUser,
+    logout
   };
 
   return (

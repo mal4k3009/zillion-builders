@@ -53,7 +53,7 @@ async function sendPushNotification(req, res) {
     const assignedByDoc = await db.collection('users').doc(assignedByUserId).get();
     const assignedByName = assignedByDoc.exists ? assignedByDoc.data().name : 'Someone';
 
-    // Prepare the message for real push notification - simplified payload
+    // Prepare the message for real push notification
     const message = {
       notification: {
         title: '📋 New Task Assigned',
@@ -64,10 +64,15 @@ async function sendPushNotification(req, res) {
         taskId: taskId,
         assignedBy: assignedByUserId,
         taskTitle: taskTitle,
-        click_action: '/tasks'
+        click_action: '/tasks',
+        url: `/tasks?taskId=${taskId}`
       },
       token: fcmToken,
       webpush: {
+        headers: {
+          'TTL': '300',
+          'Urgency': 'high'
+        },
         notification: {
           title: '📋 New Task Assigned',
           body: `${assignedByName} assigned you: "${taskTitle}"`,
@@ -75,7 +80,54 @@ async function sendPushNotification(req, res) {
           badge: '/favicon.ico',
           tag: 'task-notification',
           requireInteraction: true,
-          vibrate: [200, 100, 200]
+          vibrate: [200, 100, 200],
+          sound: 'default',
+          actions: [
+            {
+              action: 'view',
+              title: '👀 View Task',
+              icon: '/icons/view.png'
+            },
+            {
+              action: 'dismiss',
+              title: '❌ Dismiss',
+              icon: '/icons/dismiss.png'
+            }
+          ],
+          data: {
+            url: `/tasks?taskId=${taskId}`,
+            taskId: taskId
+          }
+        },
+        fcm_options: {
+          link: `/tasks?taskId=${taskId}`
+        }
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          title: '📋 New Task Assigned',
+          body: `${assignedByName} assigned you: "${taskTitle}"`,
+          icon: '/favicon.ico',
+          sound: 'default',
+          click_action: '/tasks',
+          channel_id: 'task_notifications'
+        }
+      },
+      apns: {
+        payload: {
+          aps: {
+            alert: {
+              title: '📋 New Task Assigned',
+              body: `${assignedByName} assigned you: "${taskTitle}"`
+            },
+            badge: 1,
+            sound: 'default',
+            'content-available': 1
+          }
+        },
+        fcm_options: {
+          link: `/tasks?taskId=${taskId}`
         }
       }
     };

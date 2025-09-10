@@ -14,6 +14,7 @@ import { AnalyticsPage } from './components/analytics/AnalyticsPage';
 import { WhatsAppPage } from './components/whatsapp/WhatsAppPage';
 import { CalendarPage } from './components/calendar/CalendarPage';
 import { SettingsPage } from './components/settings/SettingsPage';
+import { notificationService } from './services/notificationService';
 
 function AppContent() {
   const { state, dispatch } = useApp();
@@ -26,7 +27,12 @@ function AppContent() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [state.theme]);
+    
+    // Initialize notification service when user logs in
+    if (state.currentUser && !notificationService.getFCMToken()) {
+      notificationService.initialize();
+    }
+  }, [state.theme, state.currentUser]);
 
   // Show loading spinner while data is being loaded
   if (state.loading) {

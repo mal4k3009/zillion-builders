@@ -20,15 +20,16 @@ class NotificationService {
     // If FCM is not available, fall back to simple notifications
     if (!this.fcmToken) {
       this.hasPermission = await requestSimpleNotificationPermission();
+      console.log('⚠️ FCM not available, using browser notifications only');
     } else {
       this.hasPermission = true;
-      console.log('FCM Token:', this.fcmToken);
+      console.log('✅ FCM Token obtained:', this.fcmToken.substring(0, 20) + '...');
       
       // Listen for foreground messages
       this.setupForegroundMessageListener();
     }
     
-    console.log('Notification permission:', this.hasPermission);
+    console.log('🔔 Notification permission:', this.hasPermission ? 'GRANTED' : 'DENIED');
   }
 
   private setupForegroundMessageListener() {

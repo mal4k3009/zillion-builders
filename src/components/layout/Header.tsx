@@ -6,7 +6,7 @@ import { ChatPanel } from '../chat/ChatPanel';
 import { NotificationStatus } from '../notifications/NotificationPermissionBanner';
 
 export function Header() {
-  const { state, dispatch } = useApp();
+  const { state, dispatch, logout } = useApp();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -20,7 +20,7 @@ export function Header() {
   ).length;
 
   const handleLogout = () => {
-    dispatch({ type: 'SET_CURRENT_USER', payload: null });
+    logout(); // Use the proper logout function that clears localStorage
     setShowUserMenu(false);
   };
 
