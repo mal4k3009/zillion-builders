@@ -94,8 +94,12 @@ class NotificationService {
   // Server-side push notification method
   private async sendServerNotification(taskId: string, assignedUserId: string, assignedByUserId: string, taskTitle: string) {
     try {
-      // Call the local API server for push notifications
-      const response = await fetch('http://localhost:3001/api/send-push-notification', {
+      // Use environment-based API URL
+      const apiUrl = process.env.NODE_ENV === 'production' 
+        ? '/api/send-push-notification' 
+        : 'http://localhost:3001/api/send-push-notification';
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
