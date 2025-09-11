@@ -357,10 +357,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeApp = async () => {
       await loadAllData();
-      restoreUserSession();
     };
     initializeApp();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Restore user session after users are loaded
+  useEffect(() => {
+    if (state.users.length > 0 && !state.currentUser) {
+      restoreUserSession();
+    }
+  }, [state.users]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore user session from localStorage
   const restoreUserSession = () => {
@@ -369,18 +375,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (savedSession) {
         const sessionData = JSON.parse(savedSession);
         
-        // Wait for users to be loaded first
-        if (state.users.length > 0) {
+        // Check if session is still valid
+        if (sessionData.expiry > Date.now()) {
           const user = state.users.find(u => u.id === sessionData.userId);
-          if (user && sessionData.expiry > Date.now()) {
+          if (user) {
             console.log('🔄 Restoring user session for:', user.name);
             dispatch({ type: 'SET_CURRENT_USER', payload: user });
             
             // Re-initialize FCM token for this user
             initializeFCMForUser(user);
           } else {
+            console.log('⚠️ User not found, clearing session');
             localStorage.removeItem('zillion_user_session');
           }
+        } else {
+          console.log('⏰ Session expired, clearing session');
+          localStorage.removeItem('zillion_user_session');
         }
       }
     } catch (error) {

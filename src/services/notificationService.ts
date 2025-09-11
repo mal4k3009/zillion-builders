@@ -94,10 +94,12 @@ class NotificationService {
   // Server-side push notification method
   private async sendServerNotification(taskId: string, assignedUserId: string, assignedByUserId: string, taskTitle: string) {
     try {
-      // Use environment-based API URL
-      const apiUrl = process.env.NODE_ENV === 'production' 
-        ? '/api/send-push-notification' 
-        : 'http://localhost:3001/api/send-push-notification';
+      // Dynamic API URL based on current window location
+      const apiUrl = window.location.hostname === 'localhost' 
+        ? 'http://localhost:3001/api/send-push-notification'
+        : `${window.location.origin}/api/send-push-notification`;
+      
+      console.log('🚀 Sending server notification to:', apiUrl);
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -113,14 +115,15 @@ class NotificationService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const result = await response.json();
-      console.log('Server notification sent:', result);
+      console.log('✅ Server notification sent successfully:', result);
       return result.success;
     } catch (error) {
-      console.error('Error sending server notification:', error);
+      console.error('❌ Error sending server notification:', error);
       return false;
     }
   }
