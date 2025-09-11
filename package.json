@@ -12,6 +12,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "seed": "node scripts/seed-data.js",
+    "seed:chat": "node scripts/seed-chat-data.cjs",
+    "demo:chat": "node scripts/demo-realtime-chat.cjs",
     "api": "node api/server.cjs",
     "start:full": "concurrently \"npm run dev\" \"npm run api\"",
     "test:production": "node scripts/test-production-system.cjs",

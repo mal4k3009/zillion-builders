@@ -1,15 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Image, Smile, Search } from 'lucide-react';
+import { Send, Paperclip, Smile, Search } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ChatMessage } from '../../types';
 
 export function ChatPage() {
-  const { state, sendChatMessage, createActivity, dispatch } = useApp();
+  const { 
+    state, 
+    sendChatMessage, 
+    createActivity, 
+    subscribeToUserConversations,
+    subscribeToConversation,
+    markConversationAsRead
+  } = useApp();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [conversationMessages, setConversationMessages] = useState<ChatMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   const users = state.users.filter(u => u.id !== state.currentUser?.id);
   
@@ -19,26 +28,61 @@ export function ChatPage() {
 
   const selectedUser = users.find(u => u.id === selectedUserId);
 
-  const chatMessages = state.chatMessages.filter(msg =>
-    (msg.senderId === state.currentUser?.id && msg.receiverId === selectedUserId) ||
-    (msg.senderId === selectedUserId && msg.receiverId === state.currentUser?.id)
-  ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+  // Subscribe to user's all conversations for unread counts and recent messages
+  useEffect(() => {
+    if (state.currentUser) {
+      const unsubscribe = subscribeToUserConversations(state.currentUser.id);
+      return () => unsubscribe();
+    }
+  }, [state.currentUser, subscribeToUserConversations]);
+
+  // Subscribe to specific conversation when user is selected
+  useEffect(() => {
+    if (selectedUserId && state.currentUser) {
+      // Unsubscribe from previous conversation
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
+
+      // Subscribe to new conversation
+      unsubscribeRef.current = subscribeToConversation(state.currentUser.id, selectedUserId);
+      
+      // Mark conversation as read
+      markConversationAsRead(state.currentUser.id, selectedUserId);
+    }
+
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
+    };
+  }, [selectedUserId, state.currentUser, subscribeToConversation, markConversationAsRead]);
+
+  // Filter conversation messages for current conversation
+  useEffect(() => {
+    if (selectedUserId && state.currentUser) {
+      const filtered = state.chatMessages.filter(msg =>
+        (msg.senderId === state.currentUser!.id && msg.receiverId === selectedUserId) ||
+        (msg.senderId === selectedUserId && msg.receiverId === state.currentUser!.id)
+      ).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+      
+      setConversationMessages(filtered);
+    }
+  }, [state.chatMessages, selectedUserId, state.currentUser]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [chatMessages]);
+  }, [conversationMessages]);
 
+  // Mark messages as read when conversation changes
   useEffect(() => {
     if (selectedUserId && state.currentUser) {
-      // Mark messages as read
-      dispatch({
-        type: 'MARK_MESSAGES_READ',
-        payload: { senderId: selectedUserId, receiverId: state.currentUser.id }
-      });
+      markConversationAsRead(state.currentUser.id, selectedUserId);
     }
-  }, [selectedUserId, state.currentUser]);
+  }, [selectedUserId, state.currentUser, markConversationAsRead]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,9 +240,8 @@ export function ChatPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {chatMessages.map((msg) => {
+              {conversationMessages.map((msg: ChatMessage) => {
                 const isOwnMessage = msg.senderId === state.currentUser?.id;
-                const sender = state.users.find(u => u.id === msg.senderId);
 
                 return (
                   <div key={msg.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>

@@ -45,7 +45,7 @@ export interface TaskAttachment {
 }
 
 export interface ChatMessage {
-  id: number;
+  id: string;
   senderId: number;
   receiverId: number;
   content: string;
@@ -54,6 +54,7 @@ export interface ChatMessage {
   fileName?: string;
   fileUrl?: string;
   isRead: boolean;
+  participants?: string[]; // For Firebase querying
 }
 
 export interface Notification {

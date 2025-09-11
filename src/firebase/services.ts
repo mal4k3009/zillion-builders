@@ -9,7 +9,10 @@ import {
   query, 
   where, 
   orderBy, 
-  serverTimestamp
+  serverTimestamp,
+  onSnapshot,
+  Timestamp,
+  limit
 } from 'firebase/firestore';
 import { db } from './config';
 import { User, Task, ChatMessage, Notification, WhatsAppMessage, Activity } from '../types';
@@ -151,37 +154,118 @@ export const chatService = {
   async getAll(): Promise<ChatMessage[]> {
     const q = query(collection(db, 'chatMessages'), orderBy('timestamp', 'desc'));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
-      ...doc.data() 
-    } as ChatMessage));
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { 
+        id: doc.id, 
+        ...data,
+        timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+      } as ChatMessage;
+    });
   },
 
   async getConversation(userId1: number, userId2: number): Promise<ChatMessage[]> {
     const q = query(
       collection(db, 'chatMessages'),
-      where('senderId', 'in', [userId1, userId2]),
-      where('receiverId', 'in', [userId1, userId2]),
+      where('participants', 'array-contains-any', [`${userId1}_${userId2}`, `${userId2}_${userId1}`]),
       orderBy('timestamp', 'asc')
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
-      ...doc.data() 
-    } as ChatMessage));
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { 
+        id: doc.id, 
+        ...data,
+        timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+      } as ChatMessage;
+    });
+  },
+
+  // Real-time listener for conversations
+  onConversationSnapshot(userId1: number, userId2: number, callback: (messages: ChatMessage[]) => void) {
+    const q = query(
+      collection(db, 'chatMessages'),
+      where('participants', 'array-contains-any', [`${userId1}_${userId2}`, `${userId2}_${userId1}`]),
+      orderBy('timestamp', 'asc')
+    );
+    
+    return onSnapshot(q, (querySnapshot) => {
+      const messages = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+        } as ChatMessage;
+      });
+      callback(messages);
+    });
+  },
+
+  // Real-time listener for all user's conversations
+  onUserConversationsSnapshot(userId: number, callback: (messages: ChatMessage[]) => void) {
+    const q = query(
+      collection(db, 'chatMessages'),
+      where('participants', 'array-contains', userId.toString()),
+      orderBy('timestamp', 'desc'),
+      limit(100)
+    );
+    
+    return onSnapshot(q, (querySnapshot) => {
+      const messages = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+        } as ChatMessage;
+      });
+      callback(messages);
+    });
   },
 
   async send(messageData: Omit<ChatMessage, 'id'>): Promise<string> {
+    const participants = [
+      `${messageData.senderId}_${messageData.receiverId}`,
+      `${messageData.receiverId}_${messageData.senderId}`
+    ];
+    
     const docRef = await addDoc(collection(db, 'chatMessages'), {
       ...messageData,
-      timestamp: serverTimestamp()
+      participants,
+      timestamp: serverTimestamp(),
+      createdAt: serverTimestamp()
     });
     return docRef.id;
   },
 
-  async markAsRead(id: number): Promise<void> {
-    const docRef = doc(db, 'chatMessages', id.toString());
-    await updateDoc(docRef, { isRead: true });
+  async markAsRead(messageIds: string[]): Promise<void> {
+    const batch: Promise<void>[] = [];
+    for (const messageId of messageIds) {
+      const docRef = doc(db, 'chatMessages', messageId);
+      batch.push(updateDoc(docRef, { isRead: true }));
+    }
+    await Promise.all(batch);
+  },
+
+  async markConversationAsRead(userId1: number, userId2: number): Promise<void> {
+    const q = query(
+      collection(db, 'chatMessages'),
+      where('senderId', '==', userId2),
+      where('receiverId', '==', userId1),
+      where('isRead', '==', false)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const batch: Promise<void>[] = [];
+    
+    querySnapshot.docs.forEach((doc) => {
+      batch.push(updateDoc(doc.ref, { isRead: true }));
+    });
+    
+    if (batch.length > 0) {
+      await Promise.all(batch);
+    }
   }
 };
 

@@ -183,6 +183,10 @@ interface AppContextType {
   createActivity: (activityData: Omit<Activity, 'id'>) => Promise<void>;
   setCurrentUser: (user: User, fcmToken?: string) => Promise<void>;
   logout: () => void;
+  // Real-time chat functions
+  subscribeToUserConversations: (userId: number) => () => void;
+  subscribeToConversation: (userId1: number, userId2: number) => () => void;
+  markConversationAsRead: (userId1: number, userId2: number) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -288,9 +292,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const sendChatMessage = async (messageData: Omit<ChatMessage, 'id'>) => {
     try {
       await chatService.send(messageData);
-      await loadAllData();
+      // Real-time updates will handle the UI update automatically
     } catch (error) {
       console.error('Error sending chat message:', error);
+    }
+  };
+
+  // Real-time chat functions
+  const subscribeToUserConversations = (userId: number) => {
+    return chatService.onUserConversationsSnapshot(userId, (messages) => {
+      dispatch({ type: 'SET_CHAT_MESSAGES', payload: messages });
+    });
+  };
+
+  const subscribeToConversation = (userId1: number, userId2: number) => {
+    return chatService.onConversationSnapshot(userId1, userId2, (messages) => {
+      // Update only the specific conversation messages
+      dispatch({ type: 'SET_CHAT_MESSAGES', payload: messages });
+    });
+  };
+
+  const markConversationAsRead = async (userId1: number, userId2: number) => {
+    try {
+      await chatService.markConversationAsRead(userId1, userId2);
+    } catch (error) {
+      console.error('Error marking conversation as read:', error);
     }
   };
 
@@ -458,7 +484,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     markNotificationAsRead,
     createActivity,
     setCurrentUser,
-    logout
+    logout,
+    subscribeToUserConversations,
+    subscribeToConversation,
+    markConversationAsRead
   };
 
   return (
