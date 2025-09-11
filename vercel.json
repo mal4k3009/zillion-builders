@@ -1,9 +1,4 @@
 {
-  "functions": {
-    "api/send-push-notification.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
