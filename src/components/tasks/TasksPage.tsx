@@ -4,7 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { TaskCard } from './TaskCard';
 import { TaskModal } from './TaskModal';
 import { TaskFilters } from './TaskFilters';
-import { NotificationPermissionBanner } from '../notifications/NotificationPermissionBanner';
+// import { NotificationPermissionBanner } from '../notifications/NotificationPermissionBanner'; // REMOVED
 import { Task } from '../../types';
 
 export function TasksPage() {
@@ -92,7 +92,7 @@ export function TasksPage() {
 
   return (
     <div className="space-y-6">
-      <NotificationPermissionBanner />
+      {/* <NotificationPermissionBanner /> */}
       
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-deep-charcoal dark:text-pure-white">
