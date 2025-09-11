@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "seed": "node scripts/seed-data.js",
     "api": "node api/server.cjs",
-    "start:full": "concurrently \"npm run dev\" \"npm run api\""
+    "start:full": "concurrently \"npm run dev\" \"npm run api\"",
+    "test:production": "node scripts/test-production-system.cjs",
+    "test:push": "node scripts/test-push-system.cjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

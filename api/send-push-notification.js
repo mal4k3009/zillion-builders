@@ -57,12 +57,19 @@ module.exports = async function handler(req, res) {
 
   try {
     const { taskId, assignedUserId, assignedByUserId, taskTitle } = req.body;
+    
+    console.log('🔔 Push notification request:', {
+      taskId,
+      assignedUserId,
+      assignedByUserId,
+      taskTitle
+    });
 
     // Get user's FCM token from Firestore
     const userDoc = await db.collection('users').doc(assignedUserId).get();
     
     if (!userDoc.exists) {
-      console.error('User not found:', assignedUserId);
+      console.error('❌ User not found:', assignedUserId);
       res.status(404).json({ success: false, error: 'User not found' });
       return;
     }
@@ -71,10 +78,12 @@ module.exports = async function handler(req, res) {
     const fcmToken = userData.fcmToken;
 
     if (!fcmToken) {
-      console.log('No FCM token found for user:', assignedUserId);
+      console.log('⚠️ No FCM token found for user:', assignedUserId);
       res.status(400).json({ success: false, error: 'No FCM token found for user' });
       return;
     }
+
+    console.log('🎯 FCM Token found for user:', assignedUserId, 'Token:', fcmToken.substring(0, 20) + '...');
 
     // Get the user who assigned the task
     const assignedByDoc = await db.collection('users').doc(assignedByUserId).get();
@@ -160,10 +169,12 @@ module.exports = async function handler(req, res) {
     };
 
     // Send the push notification
+    console.log('📤 Sending push notification...');
     const response = await messaging.send(message);
     console.log('✅ Push notification sent successfully:', response);
 
     // Create notification document in Firestore
+    console.log('💾 Creating notification document...');
     await db.collection('notifications').add({
       userId: assignedUserId,
       title: '📋 New Task Assigned',
@@ -180,6 +191,7 @@ module.exports = async function handler(req, res) {
       }
     });
 
+    console.log('✅ Notification process completed successfully');
     res.json({ 
       success: true, 
       message: 'Push notification sent successfully',
