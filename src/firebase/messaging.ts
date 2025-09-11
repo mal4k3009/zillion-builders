@@ -8,31 +8,44 @@ const VAPID_KEY = 'BPwsEr9h51l4xuATkQIrfmwZGJCIUL-7fvDzqiticDTziSjq5yBlEJ-fZwD7x
 
 export const requestNotificationPermission = async () => {
   try {
-    // Request notification permission
+    // Request notification permission first
     const permission = await Notification.requestPermission();
     
     if (permission === 'granted') {
-      console.log('Notification permission granted.');
+      console.log('✅ Notification permission granted.');
       
-      // Get registration token
-      const token = await getToken(messaging, {
-        vapidKey: VAPID_KEY
-      });
+      // Only try FCM on HTTPS or production domains
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const isHTTPS = window.location.protocol === 'https:';
       
-      if (token) {
-        console.log('Registration token:', token);
-        // You can send this token to your server to store for the user
-        return token;
-      } else {
-        console.log('No registration token available.');
+      if (isLocalhost && !isHTTPS) {
+        console.log('⚠️ FCM not available on localhost HTTP, using browser notifications only');
+        return null;
+      }
+      
+      try {
+        // Get registration token
+        const token = await getToken(messaging, {
+          vapidKey: VAPID_KEY
+        });
+        
+        if (token) {
+          console.log('✅ FCM Registration token obtained:', token.substring(0, 20) + '...');
+          return token;
+        } else {
+          console.log('⚠️ No FCM registration token available, using browser notifications');
+          return null;
+        }
+      } catch (fcmError) {
+        console.log('⚠️ FCM registration failed, falling back to browser notifications:', fcmError);
         return null;
       }
     } else {
-      console.log('Notification permission denied.');
+      console.log('❌ Notification permission denied.');
       return null;
     }
   } catch (error) {
-    console.error('An error occurred while retrieving token. ', error);
+    console.error('❌ Error requesting notification permission:', error);
     return null;
   }
 };

@@ -328,13 +328,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'SET_CURRENT_USER', payload: user });
       
-      // Save session to localStorage (expires in 30 days)
+      // Save session to localStorage (expires in 1 year - effectively persistent until manual logout)
       const sessionData = {
         userId: user.id,
-        expiry: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 days
+        userName: user.name, // Store name for debugging
+        loginTime: Date.now(),
+        expiry: Date.now() + (365 * 24 * 60 * 60 * 1000) // 1 year
       };
       localStorage.setItem('zillion_user_session', JSON.stringify(sessionData));
-      console.log('💾 User session saved for:', user.name);
+      console.log('💾 User session saved for:', user.name, 'Valid until:', new Date(sessionData.expiry).toLocaleDateString());
       
       // If FCM token is provided, store it in the user's document
       if (fcmToken) {
@@ -348,9 +350,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Logout function
   const logout = () => {
+    const currentUserName = state.currentUser?.name || 'Unknown user';
     dispatch({ type: 'SET_CURRENT_USER', payload: null });
     localStorage.removeItem('zillion_user_session');
-    console.log('👋 User logged out');
+    console.log('👋 User manually logged out:', currentUserName);
+    console.log('🗑️ Session cleared from localStorage');
   };
 
   // Load data and check for existing session on component mount
@@ -364,37 +368,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Restore user session after users are loaded
   useEffect(() => {
     if (state.users.length > 0 && !state.currentUser) {
+      console.log('👥 Users loaded, attempting session restoration...', state.users.length, 'users available');
       restoreUserSession();
     }
   }, [state.users]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Additional check for session restoration after a delay (in case of timing issues)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (state.users.length > 0 && !state.currentUser) {
+        console.log('⏰ Delayed session restoration check...');
+        restoreUserSession();
+      }
+    }, 1000); // 1 second delay
+
+    return () => clearTimeout(timer);
+  }, [state.users, state.currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore user session from localStorage
   const restoreUserSession = () => {
     try {
       const savedSession = localStorage.getItem('zillion_user_session');
+      console.log('🔍 Checking for saved session...', savedSession ? 'Found' : 'None');
+      
       if (savedSession) {
         const sessionData = JSON.parse(savedSession);
+        console.log('📋 Session data:', {
+          userId: sessionData.userId,
+          userName: sessionData.userName,
+          loginTime: sessionData.loginTime ? new Date(sessionData.loginTime).toLocaleString() : 'Unknown',
+          expiry: new Date(sessionData.expiry).toLocaleString(),
+          isValid: sessionData.expiry > Date.now()
+        });
         
-        // Check if session is still valid
+        // Check if session is still valid (1 year expiry means it should basically never expire)
         if (sessionData.expiry > Date.now()) {
           const user = state.users.find(u => u.id === sessionData.userId);
           if (user) {
-            console.log('🔄 Restoring user session for:', user.name);
+            console.log('✅ Restoring user session for:', user.name);
             dispatch({ type: 'SET_CURRENT_USER', payload: user });
             
             // Re-initialize FCM token for this user
             initializeFCMForUser(user);
           } else {
-            console.log('⚠️ User not found, clearing session');
+            console.log('⚠️ User not found in current users list, clearing session');
             localStorage.removeItem('zillion_user_session');
           }
         } else {
-          console.log('⏰ Session expired, clearing session');
+          console.log('⏰ Session expired (this should be rare with 1-year expiry), clearing session');
           localStorage.removeItem('zillion_user_session');
         }
+      } else {
+        console.log('📭 No saved session found');
       }
     } catch (error) {
-      console.error('Error restoring session:', error);
+      console.error('❌ Error restoring session:', error);
       localStorage.removeItem('zillion_user_session');
     }
   };

@@ -16,6 +16,8 @@ export function LoginPage() {
     setLoading(true);
     setError('');
 
+    console.log('🔐 Login attempt for username:', username);
+
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -24,14 +26,21 @@ export function LoginPage() {
     );
 
     if (user) {
+      console.log('✅ User found:', user.name);
+      
       // Try to get FCM token for push notifications
+      console.log('🔔 Requesting notification permission...');
       const fcmToken = await requestNotificationPermission();
+      console.log('🎯 FCM Token received:', fcmToken ? 'Yes' : 'No');
       
       const updatedUser = { ...user, lastLogin: new Date().toISOString() };
       
       // Set current user with FCM token
+      console.log('💾 Saving user session...');
       await setCurrentUser(updatedUser, fcmToken || undefined);
+      console.log('✅ Login completed for:', user.name);
     } else {
+      console.log('❌ Login failed: Invalid credentials');
       setError('Invalid credentials or account is inactive');
     }
     
@@ -48,6 +57,7 @@ export function LoginPage() {
     };
 
     const creds = credentials[userType];
+    console.log('⚡ Quick login for:', userType, 'with credentials:', creds);
     setUsername(creds.username);
     setPassword(creds.password);
   };
