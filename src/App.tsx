@@ -14,7 +14,7 @@ import { AnalyticsPage } from './components/analytics/AnalyticsPage';
 import { WhatsAppPage } from './components/whatsapp/WhatsAppPage';
 import { CalendarPage } from './components/calendar/CalendarPage';
 import { SettingsPage } from './components/settings/SettingsPage';
-import { notificationService } from './services/notificationService';
+// import { notificationService } from './services/notificationService'; // DISABLED - n8n will handle notifications
 
 function AppContent() {
   const { state, dispatch } = useApp();
@@ -28,9 +28,12 @@ function AppContent() {
       document.documentElement.classList.remove('dark');
     }
     
-    // Initialize notification service when user logs in
-    if (state.currentUser && !notificationService.getFCMToken()) {
-      notificationService.initialize();
+    // Initialize notification service when user logs in (DISABLED - n8n will handle notifications)
+    if (state.currentUser) {
+      console.log('📴 Notification service initialization disabled - Using n8n automation instead');
+      // if (!notificationService.getFCMToken()) {
+      //   notificationService.initialize();
+      // }
     }
   }, [state.theme, state.currentUser]);
 

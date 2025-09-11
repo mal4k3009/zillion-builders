@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { LogIn, Eye, EyeOff, Shield } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { requestNotificationPermission } from '../../firebase/messaging';
+// import { requestNotificationPermission } from '../../firebase/messaging'; // DISABLED - n8n will handle notifications
 
 export function LoginPage() {
   const { state, setCurrentUser } = useApp();
@@ -30,7 +30,8 @@ export function LoginPage() {
       
       // Try to get FCM token for push notifications
       console.log('🔔 Requesting notification permission...');
-      const fcmToken = await requestNotificationPermission();
+      // const fcmToken = await requestNotificationPermission(); // DISABLED - n8n will handle notifications
+      const fcmToken = null; // No FCM token needed
       console.log('🎯 FCM Token received:', fcmToken ? 'Yes' : 'No');
       
       const updatedUser = { ...user, lastLogin: new Date().toISOString() };

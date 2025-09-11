@@ -427,18 +427,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Initialize FCM token for logged in user
+  // Initialize FCM token for logged in user (DISABLED - n8n will handle notifications)
   const initializeFCMForUser = async (user: User) => {
     try {
-      const { requestNotificationPermission } = await import('../firebase/messaging');
-      const fcmToken = await requestNotificationPermission();
+      console.log('📴 FCM initialization disabled for user:', user.name, '- Using n8n automation instead');
+      // const { requestNotificationPermission } = await import('../firebase/messaging');
+      // const fcmToken = await requestNotificationPermission();
       
-      if (fcmToken) {
-        await usersService.updateFCMToken(user.id, fcmToken);
-        console.log('🔔 FCM token updated for user:', user.name);
-      }
+      // if (fcmToken) {
+      //   await usersService.updateFCMToken(user.id, fcmToken);
+      //   console.log('🔔 FCM token updated for user:', user.name);
+      // }
     } catch (error) {
-      console.error('Error initializing FCM for user:', error);
+      console.error('Error in FCM initialization (disabled):', error);
     }
   };
 

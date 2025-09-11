@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Calendar, Flag, User } from 'lucide-react';
 import { Task } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { notificationService } from '../../services/notificationService';
+// import { notificationService } from '../../services/notificationService'; // DISABLED - n8n will handle notifications
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -104,14 +104,15 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
           actionUrl: `/tasks`
         });
 
-        // Send real push notification to phone
+        // Send real push notification to phone (DISABLED - n8n will handle notifications)
         if (assignedUser) {
-          await notificationService.sendTaskAssignedNotification(
-            assignedUser,
-            formData.title,
-            state.currentUser?.name || 'Master Admin',
-            taskId // Pass the actual task ID
-          );
+          console.log('📴 Task notification disabled - n8n will handle notification for:', assignedUser.name);
+          // await notificationService.sendTaskAssignedNotification(
+          //   assignedUser,
+          //   formData.title,
+          //   state.currentUser?.name || 'Master Admin',
+          //   taskId // Pass the actual task ID
+          // );
         }
 
         // Add activity
@@ -124,10 +125,11 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       } else if (mode === 'edit') {
         await updateTask(task!.id, taskData);
         
-        // If task status changed to completed, send notification
+        // If task status changed to completed, send notification (DISABLED - n8n will handle notifications)
         if (task?.status !== 'completed' && taskData.status === 'completed') {
           const completedBy = state.currentUser?.name || 'User';
-          await notificationService.sendTaskCompletedNotification(completedBy, formData.title);
+          console.log('📴 Task completion notification disabled - n8n will handle notification for:', completedBy);
+          // await notificationService.sendTaskCompletedNotification(completedBy, formData.title);
         }
         
         // Add activity
