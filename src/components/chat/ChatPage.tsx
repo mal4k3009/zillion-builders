@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Paperclip, Smile, Search } from 'lucide-react';
+import { Send, Paperclip, Smile, Search, Trash2, MoreVertical } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ChatMessage } from '../../types';
 
@@ -7,6 +7,7 @@ export function ChatPage() {
   const { 
     state, 
     sendChatMessage, 
+    deleteChatMessage,
     createActivity, 
     subscribeToUserConversations,
     subscribeToConversation,
@@ -16,6 +17,7 @@ export function ChatPage() {
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [conversationMessages, setConversationMessages] = useState<ChatMessage[]>([]);
+  const [showDeleteMenu, setShowDeleteMenu] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -84,6 +86,18 @@ export function ChatPage() {
     }
   }, [selectedUserId, state.currentUser, markConversationAsRead]);
 
+  // Close delete menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowDeleteMenu(null);
+    };
+
+    if (showDeleteMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showDeleteMenu]);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim() || !selectedUserId || !state.currentUser) return;
@@ -126,6 +140,15 @@ export function ChatPage() {
     };
 
     await sendChatMessage(newMessage);
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    try {
+      await deleteChatMessage(messageId);
+      setShowDeleteMenu(null);
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -245,11 +268,36 @@ export function ChatPage() {
 
                 return (
                   <div key={msg.id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                    <div className={`relative group max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                       isOwnMessage
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
                     }`}>
+                      {/* Delete button - only show for own messages */}
+                      {isOwnMessage && (
+                        <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowDeleteMenu(showDeleteMenu === msg.id ? null : msg.id)}
+                              className="p-1 bg-gray-600 hover:bg-gray-700 text-white rounded-full shadow-lg transition-colors"
+                            >
+                              <MoreVertical className="w-3 h-3" />
+                            </button>
+                            {showDeleteMenu === msg.id && (
+                              <div className="absolute right-0 top-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg z-10">
+                                <button
+                                  onClick={() => handleDeleteMessage(msg.id)}
+                                  className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 w-full text-left"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
                       {msg.type === 'file' && (
                         <div className="flex items-center gap-2 mb-1">
                           <Paperclip className="w-3 h-3" />

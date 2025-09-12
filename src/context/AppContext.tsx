@@ -178,6 +178,7 @@ interface AppContextType {
   updateUser: (id: number, userData: Partial<User>) => Promise<void>;
   deleteUser: (id: number) => Promise<void>;
   sendChatMessage: (messageData: Omit<ChatMessage, 'id'>) => Promise<void>;
+  deleteChatMessage: (messageId: string) => Promise<void>;
   createNotification: (notificationData: Omit<Notification, 'id'>) => Promise<void>;
   markNotificationAsRead: (id: number) => Promise<void>;
   createActivity: (activityData: Omit<Activity, 'id'>) => Promise<void>;
@@ -291,10 +292,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Chat operations
   const sendChatMessage = async (messageData: Omit<ChatMessage, 'id'>) => {
     try {
+      // Optimistic update: Add message to local state immediately
+      const tempMessage: ChatMessage = {
+        ...messageData,
+        id: `temp_${Date.now()}`, // Temporary ID for optimistic update
+      };
+      dispatch({ type: 'ADD_CHAT_MESSAGE', payload: tempMessage });
+
+      // Send to Firebase (real-time listeners will update with actual message)
       await chatService.send(messageData);
-      // Real-time updates will handle the UI update automatically
     } catch (error) {
       console.error('Error sending chat message:', error);
+      // Optionally remove the optimistic message on error
+    }
+  };
+
+  const deleteChatMessage = async (messageId: string) => {
+    try {
+      await chatService.deleteMessage(messageId);
+      // Real-time listener will handle removing from state
+    } catch (error) {
+      console.error('Error deleting chat message:', error);
     }
   };
 
@@ -342,10 +360,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Activity operations
   const createActivity = async (activityData: Omit<Activity, 'id'>) => {
     try {
+      // Optimistic update: Add activity to local state immediately
+      const tempActivity: Activity = {
+        ...activityData,
+        id: Date.now(), // Temporary ID for optimistic update
+      };
+      dispatch({ type: 'ADD_ACTIVITY', payload: tempActivity });
+
+      // Send to Firebase
       await activitiesService.create(activityData);
-      await loadAllData();
+      // Note: No need to reload data - the optimistic update handles UI
     } catch (error) {
       console.error('Error creating activity:', error);
+      // Optionally remove the optimistic activity on error
     }
   };
 
@@ -480,6 +507,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateUser,
     deleteUser,
     sendChatMessage,
+    deleteChatMessage,
     createNotification,
     markNotificationAsRead,
     createActivity,

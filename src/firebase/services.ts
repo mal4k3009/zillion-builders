@@ -239,6 +239,11 @@ export const chatService = {
     return docRef.id;
   },
 
+  async deleteMessage(messageId: string): Promise<void> {
+    const docRef = doc(db, 'chatMessages', messageId);
+    await deleteDoc(docRef);
+  },
+
   async markAsRead(messageIds: string[]): Promise<void> {
     const batch: Promise<void>[] = [];
     for (const messageId of messageIds) {
