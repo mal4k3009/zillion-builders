@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, Bell, Check } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -8,15 +8,27 @@ interface NotificationPanelProps {
 }
 
 export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
-  const { state, dispatch } = useApp();
+  const { state, markNotificationAsRead, subscribeToUserNotifications } = useApp();
+
+  // Subscribe to real-time notifications when component mounts
+  useEffect(() => {
+    if (state.currentUser) {
+      const unsubscribe = subscribeToUserNotifications(state.currentUser.id);
+      return unsubscribe;
+    }
+  }, [state.currentUser, subscribeToUserNotifications]);
 
   const userNotifications = state.notifications
     .filter(n => n.userId === state.currentUser?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
 
-  const handleMarkAsRead = (notificationId: number) => {
-    dispatch({ type: 'MARK_NOTIFICATION_READ', payload: notificationId });
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await markNotificationAsRead(notificationId);
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -33,6 +45,12 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case 'task_assigned':
+        return '📋';
+      case 'task_updated':
+        return '✅';
+      case 'message_received':
+        return '💬';
       case 'task':
         return '📋';
       case 'chat':

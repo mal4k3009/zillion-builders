@@ -39,7 +39,7 @@ type AppAction =
   | { type: 'MARK_MESSAGES_READ'; payload: { senderId: number; receiverId: number } }
   | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
   | { type: 'ADD_NOTIFICATION'; payload: Notification }
-  | { type: 'MARK_NOTIFICATION_READ'; payload: number }
+  | { type: 'MARK_NOTIFICATION_READ'; payload: string }
   | { type: 'SET_WHATSAPP_MESSAGES'; payload: WhatsAppMessage[] }
   | { type: 'ADD_WHATSAPP_MESSAGE'; payload: WhatsAppMessage }
   | { type: 'SET_ACTIVITIES'; payload: Activity[] }
@@ -180,7 +180,8 @@ interface AppContextType {
   sendChatMessage: (messageData: Omit<ChatMessage, 'id'>) => Promise<void>;
   deleteChatMessage: (messageId: string) => Promise<void>;
   createNotification: (notificationData: Omit<Notification, 'id'>) => Promise<void>;
-  markNotificationAsRead: (id: number) => Promise<void>;
+  markNotificationAsRead: (id: string) => Promise<void>;
+  markAllNotificationsAsRead: (userId: number) => Promise<void>;
   createActivity: (activityData: Omit<Activity, 'id'>) => Promise<void>;
   setCurrentUser: (user: User, fcmToken?: string) => Promise<void>;
   logout: () => void;
@@ -188,6 +189,8 @@ interface AppContextType {
   subscribeToUserConversations: (userId: number) => () => void;
   subscribeToConversation: (userId1: number, userId2: number, callback?: (messages: ChatMessage[]) => void) => () => void;
   markConversationAsRead: (userId1: number, userId2: number) => Promise<void>;
+  // Real-time notification functions
+  subscribeToUserNotifications: (userId: number) => () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -232,6 +235,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const createTask = async (taskData: Omit<Task, 'id'>): Promise<string> => {
     try {
       const taskId = await tasksService.create(taskData);
+      
+      // Create notification for task assignment if assignedTo is specified
+      if (taskData.assignedTo && state.currentUser) {
+        await notificationsService.createTaskAssignmentNotification(
+          parseInt(taskId),
+          taskData.assignedTo,
+          state.currentUser.id,
+          state.currentUser.name,
+          taskData.title
+        );
+      }
+      
       await loadAllData(); // Reload to get the updated data
       return taskId;
     } catch (error) {
@@ -242,7 +257,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const updateTask = async (id: number, taskData: Partial<Task>) => {
     try {
+      // Get the original task to check for assignee changes
+      const originalTask = state.tasks.find(task => task.id === id);
+      
       await tasksService.update(id, taskData);
+      
+      // Create notification if task status changed or assignedTo changed
+      if (originalTask && state.currentUser) {
+        // Check if status changed to completed, in-progress, etc.
+        if (taskData.status && taskData.status !== originalTask.status) {
+          const assignedUserId = taskData.assignedTo || originalTask.assignedTo;
+          if (assignedUserId) {
+            // Find admin users (role 'master') to notify
+            const adminUsers = state.users.filter(user => user.role === 'master');
+            for (const admin of adminUsers) {
+              await notificationsService.createTaskUpdateNotification(
+                id,
+                assignedUserId,
+                state.users.find(u => u.id === assignedUserId)?.name || 'User',
+                admin.id,
+                originalTask.title,
+                taskData.status
+              );
+            }
+          }
+        }
+        
+        // Check if assignedTo changed
+        if (taskData.assignedTo && taskData.assignedTo !== originalTask.assignedTo) {
+          await notificationsService.createTaskAssignmentNotification(
+            id,
+            taskData.assignedTo,
+            state.currentUser.id,
+            state.currentUser.name,
+            originalTask.title
+          );
+        }
+      }
+      
       await loadAllData();
     } catch (error) {
       console.error('Error updating task:', error);
@@ -293,7 +345,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const sendChatMessage = async (messageData: Omit<ChatMessage, 'id'>) => {
     try {
       // Send to Firebase - real-time listeners will handle UI updates
-      await chatService.send(messageData);
+      const messageId = await chatService.send(messageData);
+      
+      // Create notification for the recipient
+      await notificationsService.createMessageNotification(
+        messageData.senderId,
+        messageData.receiverId,
+        messageId,
+        messageData.content
+      );
     } catch (error) {
       console.error('Error sending chat message:', error);
     }
@@ -345,13 +405,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const markNotificationAsRead = async (id: number) => {
+  const markNotificationAsRead = async (id: string) => {
     try {
       await notificationsService.markAsRead(id);
       dispatch({ type: 'MARK_NOTIFICATION_READ', payload: id });
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
+  };
+
+  const markAllNotificationsAsRead = async (userId: number) => {
+    try {
+      await notificationsService.markAllAsRead(userId);
+      // Update all notifications in state to read
+      const updatedNotifications = state.notifications.map(notification => 
+        notification.userId === userId 
+          ? { ...notification, isRead: true }
+          : notification
+      );
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: updatedNotifications });
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  // Real-time notification subscription
+  const subscribeToUserNotifications = (userId: number) => {
+    const unsubscribe = notificationsService.onUserNotificationsSnapshot(
+      userId,
+      (notifications) => {
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
+      }
+    );
+    return unsubscribe;
   };
 
   // Activity operations
@@ -507,12 +593,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     deleteChatMessage,
     createNotification,
     markNotificationAsRead,
+    markAllNotificationsAsRead,
     createActivity,
     setCurrentUser,
     logout,
     subscribeToUserConversations,
     subscribeToConversation,
-    markConversationAsRead
+    markConversationAsRead,
+    subscribeToUserNotifications
   };
 
   return (

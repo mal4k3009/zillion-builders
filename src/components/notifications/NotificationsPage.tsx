@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Bell, Check, Trash2, Filter } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export function NotificationsPage() {
-  const { state, dispatch } = useApp();
-  const [filter, setFilter] = useState<'all' | 'unread' | 'task' | 'chat' | 'system'>('all');
+  const { state, markNotificationAsRead, markAllNotificationsAsRead, subscribeToUserNotifications } = useApp();
+  const [filter, setFilter] = useState<'all' | 'unread' | 'task_assigned' | 'task_updated' | 'message_received' | 'system'>('all');
+
+  // Subscribe to real-time notifications when component mounts
+  useEffect(() => {
+    if (state.currentUser) {
+      const unsubscribe = subscribeToUserNotifications(state.currentUser.id);
+      return unsubscribe;
+    }
+  }, [state.currentUser, subscribeToUserNotifications]);
 
   const userNotifications = state.notifications.filter(n => n.userId === state.currentUser?.id);
 
@@ -14,16 +22,22 @@ export function NotificationsPage() {
     return notification.type === filter;
   });
 
-  const handleMarkAsRead = (notificationId: number) => {
-    dispatch({ type: 'MARK_NOTIFICATION_READ', payload: notificationId });
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await markNotificationAsRead(notificationId);
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   };
 
-  const handleMarkAllAsRead = () => {
-    userNotifications.forEach(notification => {
-      if (!notification.isRead) {
-        dispatch({ type: 'MARK_NOTIFICATION_READ', payload: notification.id });
+  const handleMarkAllAsRead = async () => {
+    if (state.currentUser) {
+      try {
+        await markAllNotificationsAsRead(state.currentUser.id);
+      } catch (error) {
+        console.error('Failed to mark all notifications as read:', error);
       }
-    });
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -40,6 +54,12 @@ export function NotificationsPage() {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case 'task_assigned':
+        return '📋';
+      case 'task_updated':
+        return '✅';
+      case 'message_received':
+        return '💬';
       case 'task':
         return '📋';
       case 'chat':
@@ -82,7 +102,7 @@ export function NotificationsPage() {
               <span className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-300">Filter:</span>
             </div>
             <div className="flex flex-wrap gap-1.5 sm:gap-2">
-              {['all', 'unread', 'task', 'chat', 'system'].map((filterType) => (
+              {['all', 'unread', 'task_assigned', 'task_updated', 'message_received', 'system'].map((filterType) => (
                 <button
                   key={filterType}
                   onClick={() => setFilter(filterType as typeof filter)}
@@ -92,7 +112,7 @@ export function NotificationsPage() {
                       : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
-                  {filterType}
+                  {filterType.replace('_', ' ')}
                 </button>
               ))}
             </div>

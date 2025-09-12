@@ -336,10 +336,14 @@ export const notificationsService = {
   async getAll(): Promise<Notification[]> {
     const q = query(collection(db, 'notifications'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
-      ...doc.data() 
-    } as Notification));
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { 
+        id: doc.id, 
+        ...data,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt
+      } as Notification;
+    });
   },
 
   async getByUser(userId: number): Promise<Notification[]> {
@@ -349,27 +353,136 @@ export const notificationsService = {
       orderBy('createdAt', 'desc')
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
-      ...doc.data() 
-    } as Notification));
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { 
+        id: doc.id, 
+        ...data,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt
+      } as Notification;
+    });
+  },
+
+  // Real-time listener for user notifications
+  onUserNotificationsSnapshot(userId: number, callback: (notifications: Notification[]) => void) {
+    console.log(`🔔 Setting up notification listener for User ${userId}`);
+    
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
+    
+    return onSnapshot(q, (querySnapshot) => {
+      console.log(`📨 Notification update received! ${querySnapshot.docs.length} notifications found`);
+      
+      const notifications = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt
+        } as Notification;
+      });
+      
+      callback(notifications);
+    }, (error) => {
+      console.error('❌ Error in notification listener:', error);
+    });
   },
 
   async create(notificationData: Omit<Notification, 'id'>): Promise<string> {
+    console.log('🔔 Creating notification:', notificationData);
+    
     const docRef = await addDoc(collection(db, 'notifications'), {
       ...notificationData,
       createdAt: serverTimestamp()
     });
+    
+    console.log('✅ Notification created with ID:', docRef.id);
     return docRef.id;
   },
 
-  async markAsRead(id: number): Promise<void> {
-    const docRef = doc(db, 'notifications', id.toString());
+  async markAsRead(id: string): Promise<void> {
+    const docRef = doc(db, 'notifications', id);
     await updateDoc(docRef, { isRead: true });
   },
 
-  async delete(id: number): Promise<void> {
-    await deleteDoc(doc(db, 'notifications', id.toString()));
+  async markAllAsRead(userId: number): Promise<void> {
+    const q = query(
+      collection(db, 'notifications'),
+      where('userId', '==', userId),
+      where('isRead', '==', false)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const batch: Promise<void>[] = [];
+    
+    querySnapshot.docs.forEach((doc) => {
+      batch.push(updateDoc(doc.ref, { isRead: true }));
+    });
+    
+    if (batch.length > 0) {
+      await Promise.all(batch);
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'notifications', id));
+  },
+
+  // Automatic notification creators
+  async createMessageNotification(senderId: number, receiverId: number, senderName: string, messageContent: string): Promise<string> {
+    const notification: Omit<Notification, 'id'> = {
+      userId: receiverId,
+      title: 'New Message',
+      message: `${senderName} sent you a message: "${messageContent.length > 50 ? messageContent.substring(0, 50) + '...' : messageContent}"`,
+      type: 'message_received',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      relatedUserId: senderId,
+      relatedUserName: senderName,
+      actionUrl: '/chat',
+      priority: 'medium'
+    };
+    
+    return await this.create(notification);
+  },
+
+  async createTaskAssignmentNotification(taskId: number, assignedUserId: number, assignedByUserId: number, assignedByName: string, taskTitle: string): Promise<string> {
+    const notification: Omit<Notification, 'id'> = {
+      userId: assignedUserId,
+      title: 'New Task Assigned',
+      message: `${assignedByName} assigned you a new task: "${taskTitle}"`,
+      type: 'task_assigned',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      relatedUserId: assignedByUserId,
+      relatedUserName: assignedByName,
+      taskId: taskId,
+      actionUrl: '/tasks',
+      priority: 'high'
+    };
+    
+    return await this.create(notification);
+  },
+
+  async createTaskUpdateNotification(taskId: number, updatedByUserId: number, updatedByName: string, adminUserId: number, taskTitle: string, newStatus: string): Promise<string> {
+    const notification: Omit<Notification, 'id'> = {
+      userId: adminUserId,
+      title: 'Task Status Updated',
+      message: `${updatedByName} updated task "${taskTitle}" to ${newStatus}`,
+      type: 'task_updated',
+      isRead: false,
+      createdAt: new Date().toISOString(),
+      relatedUserId: updatedByUserId,
+      relatedUserName: updatedByName,
+      taskId: taskId,
+      actionUrl: '/tasks',
+      priority: newStatus === 'completed' ? 'high' : 'medium'
+    };
+    
+    return await this.create(notification);
   }
 };
 

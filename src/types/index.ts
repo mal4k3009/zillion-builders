@@ -58,14 +58,20 @@ export interface ChatMessage {
 }
 
 export interface Notification {
-  id: number;
+  id: string;
   userId: number;
   title: string;
   message: string;
-  type: 'task' | 'chat' | 'system' | 'whatsapp';
+  type: 'task_assigned' | 'task_updated' | 'message_received' | 'system' | 'task_completed';
   isRead: boolean;
   createdAt: string;
   actionUrl?: string;
+  // Additional fields for context
+  relatedUserId?: number; // Who sent the message or assigned the task
+  relatedUserName?: string; // Name of the related user
+  taskId?: number; // For task-related notifications
+  messageId?: string; // For message-related notifications
+  priority?: 'low' | 'medium' | 'high'; // Notification priority
 }
 
 export interface WhatsAppMessage {
