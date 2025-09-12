@@ -10,8 +10,7 @@ import {
   where, 
   orderBy, 
   serverTimestamp,
-  onSnapshot,
-  limit
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from './config';
 import { User, Task, ChatMessage, Notification, WhatsAppMessage, Activity } from '../types';
@@ -184,26 +183,35 @@ export const chatService = {
   onConversationSnapshot(userId1: number, userId2: number, callback: (messages: ChatMessage[]) => void) {
     console.log(`🔥 Setting up real-time listener for conversation: User ${userId1} ↔ User ${userId2}`);
     
+    // Use a simpler query that doesn't require composite index
+    // Query for messages between two specific users
     const q = query(
       collection(db, 'chatMessages'),
-      where('participants', 'array-contains-any', [`${userId1}_${userId2}`, `${userId2}_${userId1}`]),
-      orderBy('timestamp', 'asc')
+      where('senderId', 'in', [userId1, userId2]),
+      where('receiverId', 'in', [userId1, userId2])
     );
     
     return onSnapshot(q, (querySnapshot) => {
-      console.log(`📨 Real-time update received! ${querySnapshot.docs.length} messages found`);
+      console.log(`📨 Real-time update received! ${querySnapshot.docs.length} total messages found`);
       
-      const messages = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-          id: doc.id, 
-          ...data,
-          timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
-        } as ChatMessage;
-      });
+      // Filter messages for this specific conversation
+      const conversationMessages = querySnapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            ...data,
+            timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+          } as ChatMessage;
+        })
+        .filter(msg => 
+          (msg.senderId === userId1 && msg.receiverId === userId2) ||
+          (msg.senderId === userId2 && msg.receiverId === userId1)
+        )
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       
-      console.log('📋 Processed messages:', messages);
-      callback(messages);
+      console.log(`📋 Filtered conversation messages: ${conversationMessages.length}`);
+      callback(conversationMessages);
     }, (error) => {
       console.error('❌ Error in real-time listener:', error);
     });
@@ -211,14 +219,36 @@ export const chatService = {
 
   // Real-time listener for all user's conversations
   onUserConversationsSnapshot(userId: number, callback: (messages: ChatMessage[]) => void) {
+    // Use a simpler query without complex indexing requirements
     const q = query(
       collection(db, 'chatMessages'),
-      where('participants', 'array-contains', userId.toString()),
-      orderBy('timestamp', 'desc'),
-      limit(100)
+      where('senderId', '==', userId)
     );
     
-    return onSnapshot(q, (querySnapshot) => {
+    const q2 = query(
+      collection(db, 'chatMessages'),
+      where('receiverId', '==', userId)
+    );
+    
+    // We'll need to combine results from both queries
+    let allMessages: ChatMessage[] = [];
+    let completedSubscriptions = 0;
+    
+    const combineAndCallback = () => {
+      completedSubscriptions++;
+      if (completedSubscriptions === 2) {
+        // Remove duplicates and sort
+        const uniqueMessages = allMessages
+          .filter((msg, index, self) => index === self.findIndex(m => m.id === msg.id))
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+          .slice(0, 100);
+        
+        callback(uniqueMessages);
+        completedSubscriptions = 0; // Reset for next update
+      }
+    };
+    
+    const unsubscribe1 = onSnapshot(q, (querySnapshot) => {
       const messages = querySnapshot.docs.map(doc => {
         const data = doc.data();
         return { 
@@ -227,8 +257,28 @@ export const chatService = {
           timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
         } as ChatMessage;
       });
-      callback(messages);
+      allMessages = [...allMessages.filter(m => m.senderId !== userId), ...messages];
+      combineAndCallback();
     });
+    
+    const unsubscribe2 = onSnapshot(q2, (querySnapshot) => {
+      const messages = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+        } as ChatMessage;
+      });
+      allMessages = [...allMessages.filter(m => m.receiverId !== userId), ...messages];
+      combineAndCallback();
+    });
+    
+    // Return a function that unsubscribes from both listeners
+    return () => {
+      unsubscribe1();
+      unsubscribe2();
+    };
   },
 
   async send(messageData: Omit<ChatMessage, 'id'>): Promise<string> {
