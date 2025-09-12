@@ -186,7 +186,7 @@ interface AppContextType {
   logout: () => void;
   // Real-time chat functions
   subscribeToUserConversations: (userId: number) => () => void;
-  subscribeToConversation: (userId1: number, userId2: number) => () => void;
+  subscribeToConversation: (userId1: number, userId2: number, callback?: (messages: ChatMessage[]) => void) => () => void;
   markConversationAsRead: (userId1: number, userId2: number) => Promise<void>;
 }
 
@@ -292,18 +292,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Chat operations
   const sendChatMessage = async (messageData: Omit<ChatMessage, 'id'>) => {
     try {
-      // Optimistic update: Add message to local state immediately
-      const tempMessage: ChatMessage = {
-        ...messageData,
-        id: `temp_${Date.now()}`, // Temporary ID for optimistic update
-      };
-      dispatch({ type: 'ADD_CHAT_MESSAGE', payload: tempMessage });
-
-      // Send to Firebase (real-time listeners will update with actual message)
+      // Send to Firebase - real-time listeners will handle UI updates
       await chatService.send(messageData);
     } catch (error) {
       console.error('Error sending chat message:', error);
-      // Optionally remove the optimistic message on error
     }
   };
 
@@ -323,10 +315,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const subscribeToConversation = (userId1: number, userId2: number) => {
+  const subscribeToConversation = (userId1: number, userId2: number, callback?: (messages: ChatMessage[]) => void) => {
     return chatService.onConversationSnapshot(userId1, userId2, (messages) => {
-      // Update only the specific conversation messages
-      dispatch({ type: 'SET_CHAT_MESSAGES', payload: messages });
+      if (callback) {
+        // If callback is provided, use it (for local conversation state)
+        callback(messages);
+      } else {
+        // Otherwise, update global state
+        dispatch({ type: 'SET_CHAT_MESSAGES', payload: messages });
+      }
     });
   };
 

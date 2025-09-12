@@ -11,7 +11,6 @@ import {
   orderBy, 
   serverTimestamp,
   onSnapshot,
-  Timestamp,
   limit
 } from 'firebase/firestore';
 import { db } from './config';
@@ -183,6 +182,8 @@ export const chatService = {
 
   // Real-time listener for conversations
   onConversationSnapshot(userId1: number, userId2: number, callback: (messages: ChatMessage[]) => void) {
+    console.log(`🔥 Setting up real-time listener for conversation: User ${userId1} ↔ User ${userId2}`);
+    
     const q = query(
       collection(db, 'chatMessages'),
       where('participants', 'array-contains-any', [`${userId1}_${userId2}`, `${userId2}_${userId1}`]),
@@ -190,6 +191,8 @@ export const chatService = {
     );
     
     return onSnapshot(q, (querySnapshot) => {
+      console.log(`📨 Real-time update received! ${querySnapshot.docs.length} messages found`);
+      
       const messages = querySnapshot.docs.map(doc => {
         const data = doc.data();
         return { 
@@ -198,7 +201,11 @@ export const chatService = {
           timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
         } as ChatMessage;
       });
+      
+      console.log('📋 Processed messages:', messages);
       callback(messages);
+    }, (error) => {
+      console.error('❌ Error in real-time listener:', error);
     });
   },
 

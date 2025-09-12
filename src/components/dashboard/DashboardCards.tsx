@@ -83,28 +83,29 @@ export function DashboardCards() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
       {cards.map((card, index) => (
-        <div key={index} className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6 hover:shadow-md transition-shadow duration-200">
+        <div key={index} className="bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-4 sm:p-6 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-medium-gray mb-1">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-medium-gray mb-1 truncate">
                 {card.title}
               </p>
-              <p className="text-3xl font-bold text-deep-charcoal dark:text-pure-white">
+              <p className="text-2xl sm:text-3xl font-bold text-deep-charcoal dark:text-pure-white">
                 {card.value}
               </p>
-              <div className="flex items-center mt-2">
-                <span className={`text-sm font-medium ${
+              <div className="flex items-center mt-1 sm:mt-2">
+                <span className={`text-xs sm:text-sm font-medium ${
                   card.trend === 'up' ? 'text-green-600' : 'text-red-600'
                 }`}>
                   {card.change}
                 </span>
-                <span className="text-sm text-medium-gray ml-1">vs last month</span>
+                <span className="text-xs sm:text-sm text-medium-gray ml-1 hidden sm:inline">vs last month</span>
+                <span className="text-xs text-medium-gray ml-1 sm:hidden">vs last mo</span>
               </div>
             </div>
-            <div className={`${card.color === 'bg-blue-500' ? 'bg-brand-gold' : card.color} p-3 rounded-xl text-white`}>
-              {card.icon}
+            <div className={`${card.color === 'bg-blue-500' ? 'bg-brand-gold' : card.color} p-2 sm:p-3 rounded-lg sm:rounded-xl text-white flex-shrink-0`}>
+              <span className="w-4 h-4 sm:w-6 sm:h-6">{card.icon}</span>
             </div>
           </div>
         </div>

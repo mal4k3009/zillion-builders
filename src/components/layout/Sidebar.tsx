@@ -96,42 +96,42 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       ${state.sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       lg:translate-x-0 transition-transform duration-300 ease-in-out
       fixed lg:static inset-y-0 left-0 z-40
-      w-64 bg-pure-white dark:bg-deep-charcoal border-r border-light-gray dark:border-soft-black
+      w-64 sm:w-72 lg:w-64 bg-pure-white dark:bg-deep-charcoal border-r border-light-gray dark:border-soft-black
       flex flex-col
     `}>
-      <div className="p-6 border-b border-light-gray dark:border-soft-black">
-        <h2 className="text-lg font-semibold text-deep-charcoal dark:text-brand-gold">Zillion Group Teams</h2>
-        <p className="text-sm text-medium-gray capitalize">
+      <div className="p-4 sm:p-6 border-b border-light-gray dark:border-soft-black">
+        <h2 className="text-base sm:text-lg font-semibold text-deep-charcoal dark:text-brand-gold">Zillion Group Teams</h2>
+        <p className="text-xs sm:text-sm text-medium-gray capitalize">
           {state.currentUser?.role === 'master' ? 'Master Admin' : `${state.currentUser?.department} Admin`}
         </p>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-3 sm:p-4 space-y-1 sm:space-y-2">
         {filteredItems.map((item) => (
           <button
             key={item.id}
             onClick={() => onNavigate(item.id)}
             className={`
-              w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200
+              w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-left transition-all duration-200
               ${currentPage === item.id
                 ? 'bg-brand-gold text-pure-white'
                 : 'text-deep-charcoal dark:text-pure-white hover:bg-off-white dark:hover:bg-soft-black hover:text-brand-gold dark:hover:text-accent-gold'
               }
             `}
           >
-            {item.icon}
-            <span className="font-medium">{item.label}</span>
+            <span className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0">{item.icon}</span>
+            <span className="font-medium text-sm sm:text-base truncate">{item.label}</span>
           </button>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-light-gray dark:border-soft-black">
+      <div className="p-3 sm:p-4 border-t border-light-gray dark:border-soft-black">
         <button
           onClick={() => onNavigate('settings')}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-deep-charcoal dark:text-pure-white hover:bg-off-white dark:hover:bg-soft-black hover:text-brand-gold dark:hover:text-accent-gold transition-all duration-200"
+          className="w-full flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg text-deep-charcoal dark:text-pure-white hover:bg-off-white dark:hover:bg-soft-black hover:text-brand-gold dark:hover:text-accent-gold transition-all duration-200"
         >
-          <Settings className="w-5 h-5" />
-          <span className="font-medium">Settings</span>
+          <Settings className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+          <span className="font-medium text-sm sm:text-base">Settings</span>
         </button>
       </div>
     </aside>
