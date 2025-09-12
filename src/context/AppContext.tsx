@@ -345,13 +345,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const sendChatMessage = async (messageData: Omit<ChatMessage, 'id'>) => {
     try {
       // Send to Firebase - real-time listeners will handle UI updates
-      const messageId = await chatService.send(messageData);
+      await chatService.send(messageData);
+      
+      // Get sender's name for notification
+      const senderUser = state.users.find(user => user.id === messageData.senderId);
+      const senderName = senderUser?.name || 'Someone';
       
       // Create notification for the recipient
       await notificationsService.createMessageNotification(
         messageData.senderId,
         messageData.receiverId,
-        messageId,
+        senderName,
         messageData.content
       );
     } catch (error) {

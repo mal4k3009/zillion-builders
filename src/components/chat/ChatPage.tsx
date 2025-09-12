@@ -100,10 +100,16 @@ export function ChatPage() {
 
     console.log(`📤 Sending message from User ${state.currentUser.id} to User ${selectedUserId}: "${message.trim()}"`);
 
+    // Store the message content before clearing the input
+    const messageContent = message.trim();
+    
+    // Clear the input field immediately for better UX
+    setMessage('');
+
     const newMessage = {
       senderId: state.currentUser.id,
       receiverId: selectedUserId,
-      content: message.trim(),
+      content: messageContent,
       timestamp: new Date().toISOString(),
       type: 'text' as const,
       isRead: false
@@ -119,7 +125,6 @@ export function ChatPage() {
       timestamp: new Date().toISOString()
     });
 
-    setMessage('');
     console.log('✅ Message sent successfully');
   };
 
