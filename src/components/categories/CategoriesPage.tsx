@@ -412,7 +412,7 @@ export function CategoriesPage() {
                           {user.name}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {user.department} • {user.role}
+                          {user.designation} • {user.role}
                         </p>
                       </div>
                     </div>

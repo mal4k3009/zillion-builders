@@ -16,7 +16,7 @@ import { priorityLevels, taskStatuses } from '../../data/mockData';
 interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
-  onDelete?: (taskId: number) => void;
+  onDelete?: (taskId: string) => void;
   onView?: (task: Task) => void;
 }
 

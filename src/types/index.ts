@@ -3,7 +3,7 @@ export interface User {
   username: string;
   password: string;
   role: 'master' | 'sub';
-  department: string;
+  designation: string;
   name: string;
   email: string;
   status: 'active' | 'inactive';
@@ -12,7 +12,7 @@ export interface User {
 }
 
 export interface Task {
-  id: number;
+  id: string; // Changed to string for Firebase document ID
   title: string;
   description?: string;
   category: string;
@@ -32,7 +32,7 @@ export interface Task {
 
 export interface TaskComment {
   id: number;
-  taskId: number;
+  taskId: string; // Changed to string to match Task.id
   userId: number;
   content: string;
   createdAt: string;
@@ -40,7 +40,7 @@ export interface TaskComment {
 
 export interface TaskAttachment {
   id: number;
-  taskId: number;
+  taskId: string; // Changed to string to match Task.id
   filename: string;
   fileUrl: string;
   uploadedBy: number;
@@ -72,7 +72,7 @@ export interface Notification {
   // Additional fields for context
   relatedUserId?: number; // Who sent the message or assigned the task
   relatedUserName?: string; // Name of the related user
-  taskId?: number; // For task-related notifications
+  taskId?: string; // For task-related notifications (changed to string)
   messageId?: string; // For message-related notifications
   priority?: 'low' | 'medium' | 'high'; // Notification priority
 }
@@ -98,7 +98,7 @@ export interface DashboardStats {
 
 export interface Activity {
   id: number;
-  type: 'task_created' | 'task_updated' | 'user_created' | 'message_sent';
+  type: 'task_created' | 'task_updated' | 'user_created' | 'user_updated' | 'message_sent';
   description: string;
   userId: number;
   timestamp: string;

@@ -12,12 +12,13 @@ export function UsersPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const subAdmins = state.users.filter(u => u.role === 'sub');
+  // Show all users except the current user for master role users
+  const displayUsers = state.users.filter(u => u.id !== state.currentUser?.id);
   
-  const filteredUsers = subAdmins.filter(user =>
+  const filteredUsers = displayUsers.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.department.toLowerCase().includes(searchTerm.toLowerCase())
+    user.designation.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleCreateUser = () => {
@@ -76,7 +77,7 @@ export function UsersPage() {
           className="bg-brand-gold hover:bg-accent-gold text-pure-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 transition-colors text-sm sm:text-base w-fit"
         >
           <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span className="hidden xs:inline">Add Sub Admin</span>
+          <span className="hidden xs:inline">Add User</span>
           <span className="xs:hidden">Add User</span>
         </button>
       </div>
@@ -100,7 +101,7 @@ export function UsersPage() {
             <thead>
               <tr className="border-b border-light-gray dark:border-soft-black">
                 <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white">User</th>
-                <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white">Department</th>
+                <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white">Designation</th>
                 <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white">Status</th>
                 <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white hidden sm:table-cell">Last Login</th>
                 <th className="text-left py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white">Actions</th>
@@ -127,7 +128,7 @@ export function UsersPage() {
                   <td className="py-3 sm:py-4 px-2 sm:px-4">
                     <span className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 bg-brand-gold/20 text-brand-gold text-xs font-medium rounded-full capitalize">
                       <Shield className="w-2 h-2 sm:w-3 sm:h-3" />
-                      {user.department}
+                      {user.designation}
                     </span>
                   </td>
                   <td className="py-3 sm:py-4 px-2 sm:px-4">

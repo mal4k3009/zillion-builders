@@ -229,7 +229,7 @@ export function ChatPage() {
                       )}
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                      {user.department}
+                      {user.designation}
                     </p>
                     {lastMessage && (
                       <p className="text-xs text-gray-600 dark:text-gray-400 truncate mt-1">
@@ -260,7 +260,7 @@ export function ChatPage() {
                     {selectedUser?.name}
                   </h3>
                   <p className="text-xs text-gray-500 dark:text-gray-400 capitalize truncate">
-                    {selectedUser?.department} Department
+                    {selectedUser?.designation} Team
                   </p>
                 </div>
               </div>

@@ -118,7 +118,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       <div className="p-4 sm:p-6 border-b border-light-gray dark:border-soft-black">
         <h2 className="text-base sm:text-lg font-semibold text-deep-charcoal dark:text-brand-gold">Zillion Group Teams</h2>
         <p className="text-xs sm:text-sm text-medium-gray capitalize">
-          {state.currentUser?.role === 'master' ? 'Master Admin' : `${state.currentUser?.department} Admin`}
+          {state.currentUser?.role === 'master' ? 'Master Admin' : `${state.currentUser?.designation} Admin`}
         </p>
       </div>
 

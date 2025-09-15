@@ -5,8 +5,8 @@ import { useApp } from '../../context/AppContext';
 
 interface ApprovalTaskCardProps {
   task: Task;
-  onApprove: (taskId: number) => void;
-  onReject: (taskId: number) => void;
+  onApprove: (taskId: string) => void;
+  onReject: (taskId: string) => void;
   onView: (task: Task) => void;
 }
 

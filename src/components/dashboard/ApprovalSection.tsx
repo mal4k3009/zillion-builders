@@ -17,7 +17,7 @@ export function ApprovalSection() {
 
   const pendingApprovalTasks = state.tasks.filter(t => t.approvalStatus === 'pending_approval');
 
-  const handleApprove = async (taskId: number) => {
+  const handleApprove = async (taskId: string) => {
     try {
       await updateTask(taskId, { 
         approvalStatus: 'approved',
@@ -36,7 +36,7 @@ export function ApprovalSection() {
     }
   };
 
-  const handleReject = async (taskId: number) => {
+  const handleReject = async (taskId: string) => {
     try {
       await updateTask(taskId, { 
         approvalStatus: 'rejected',

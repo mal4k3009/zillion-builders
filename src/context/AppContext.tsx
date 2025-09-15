@@ -38,7 +38,7 @@ type AppAction =
   | { type: 'SET_TASKS'; payload: Task[] }
   | { type: 'ADD_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: Task }
-  | { type: 'DELETE_TASK'; payload: number }
+  | { type: 'DELETE_TASK'; payload: string }
   | { type: 'SET_CHAT_MESSAGES'; payload: ChatMessage[] }
   | { type: 'ADD_CHAT_MESSAGE'; payload: ChatMessage }
   | { type: 'MARK_MESSAGES_READ'; payload: { senderId: number; receiverId: number } }
@@ -111,13 +111,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'ADD_TASK':
       return { ...state, tasks: [...state.tasks, action.payload] };
 
-    case 'UPDATE_TASK':
+    case 'UPDATE_TASK': {
       return {
         ...state,
         tasks: state.tasks.map(task =>
           task.id === action.payload.id ? action.payload : task
         )
       };
+    }
 
     case 'DELETE_TASK':
       return {
@@ -227,8 +228,8 @@ interface AppContextType {
   // Firebase service methods
   loadAllData: () => Promise<void>;
   createTask: (taskData: Omit<Task, 'id'>) => Promise<string>;
-  updateTask: (id: number, taskData: Partial<Task>) => Promise<void>;
-  deleteTask: (id: number) => Promise<void>;
+  updateTask: (id: string, taskData: Partial<Task>) => Promise<void>;
+  deleteTask: (id: string) => Promise<void>;
   createUser: (userData: Omit<User, 'id'>) => Promise<void>;
   updateUser: (id: number, userData: Partial<User>) => Promise<void>;
   deleteUser: (id: number) => Promise<void>;
@@ -309,7 +310,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Create notification for task assignment if assignedTo is specified
       if (taskData.assignedTo && state.currentUser) {
         await notificationsService.createTaskAssignmentNotification(
-          parseInt(taskId),
+          taskId,
           taskData.assignedTo,
           state.currentUser.id,
           state.currentUser.name,
@@ -325,7 +326,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateTask = async (id: number, taskData: Partial<Task>) => {
+  const updateTask = async (id: string, taskData: Partial<Task>) => {
     try {
       // Get the original task to check for assignee changes
       const originalTask = state.tasks.find(task => task.id === id);
@@ -386,7 +387,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const deleteTask = async (id: number) => {
+  const deleteTask = async (id: string) => {
     try {
       await tasksService.delete(id);
       dispatch({ type: 'DELETE_TASK', payload: id });
@@ -401,10 +402,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // User operations
   const createUser = async (userData: Omit<User, 'id'>) => {
     try {
-      await usersService.create(userData);
+      const newUserId = await usersService.create(userData);
+      console.log('✅ User created with ID:', newUserId);
       await loadAllData();
     } catch (error) {
       console.error('Error creating user:', error);
+      throw error; // Re-throw to let the UI handle the error
     }
   };
 

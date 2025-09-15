@@ -5,6 +5,7 @@ import {
   getDoc, 
   addDoc, 
   updateDoc, 
+  setDoc,
   deleteDoc, 
   query, 
   where, 
@@ -40,12 +41,26 @@ export const usersService = {
     } as User));
   },
 
-  async create(userData: Omit<User, 'id'>): Promise<string> {
-    const docRef = await addDoc(collection(db, 'users'), {
-      ...userData,
+  async getNextUserId(): Promise<number> {
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    const existingIds = querySnapshot.docs.map(doc => parseInt(doc.id)).filter(id => !isNaN(id));
+    return existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+  },
+
+  async create(userData: Omit<User, 'id'>): Promise<number> {
+    const nextId = await this.getNextUserId();
+    const docRef = doc(db, 'users', nextId.toString());
+    
+    // Remove undefined fields to prevent Firestore errors
+    const cleanUserData = Object.fromEntries(
+      Object.entries(userData).filter(([, value]) => value !== undefined)
+    );
+    
+    await setDoc(docRef, {
+      ...cleanUserData,
       createdAt: serverTimestamp()
     });
-    return docRef.id;
+    return nextId;
   },
 
   async update(id: number, userData: Partial<User>): Promise<void> {
@@ -75,13 +90,13 @@ export const tasksService = {
     const q = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
+      id: doc.id, // Use string ID from Firebase
       ...doc.data() 
     } as Task));
   },
 
-  async getById(id: number): Promise<Task | null> {
-    const docRef = doc(db, 'tasks', id.toString());
+  async getById(id: string): Promise<Task | null> {
+    const docRef = doc(db, 'tasks', id);
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? { id, ...docSnap.data() } as Task : null;
   },
@@ -94,7 +109,7 @@ export const tasksService = {
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
+      id: doc.id, // Use string ID
       ...doc.data() 
     } as Task));
   },
@@ -107,7 +122,7 @@ export const tasksService = {
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
+      id: doc.id, // Use string ID
       ...doc.data() 
     } as Task));
   },
@@ -120,7 +135,7 @@ export const tasksService = {
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
+      id: doc.id, // Use string ID
       ...doc.data() 
     } as Task));
   },
@@ -134,16 +149,16 @@ export const tasksService = {
     return docRef.id;
   },
 
-  async update(id: number, taskData: Partial<Task>): Promise<void> {
-    const docRef = doc(db, 'tasks', id.toString());
+  async update(id: string, taskData: Partial<Task>): Promise<void> {
+    const docRef = doc(db, 'tasks', id);
     await updateDoc(docRef, {
       ...taskData,
       updatedAt: serverTimestamp()
     });
   },
 
-  async delete(id: number): Promise<void> {
-    await deleteDoc(doc(db, 'tasks', id.toString()));
+  async delete(id: string): Promise<void> {
+    await deleteDoc(doc(db, 'tasks', id));
   }
 };
 
@@ -449,7 +464,7 @@ export const notificationsService = {
     return await this.create(notification);
   },
 
-  async createTaskAssignmentNotification(taskId: number, assignedUserId: number, assignedByUserId: number, assignedByName: string, taskTitle: string): Promise<string> {
+  async createTaskAssignmentNotification(taskId: string, assignedUserId: number, assignedByUserId: number, assignedByName: string, taskTitle: string): Promise<string> {
     const notification: Omit<Notification, 'id'> = {
       userId: assignedUserId,
       title: 'New Task Assigned',
@@ -467,7 +482,7 @@ export const notificationsService = {
     return await this.create(notification);
   },
 
-  async createTaskUpdateNotification(taskId: number, updatedByUserId: number, updatedByName: string, adminUserId: number, taskTitle: string, newStatus: string): Promise<string> {
+  async createTaskUpdateNotification(taskId: string, updatedByUserId: number, updatedByName: string, adminUserId: number, taskTitle: string, newStatus: string): Promise<string> {
     const notification: Omit<Notification, 'id'> = {
       userId: adminUserId,
       title: 'Task Status Updated',

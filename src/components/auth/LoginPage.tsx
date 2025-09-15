@@ -50,17 +50,24 @@ export function LoginPage() {
 
   const quickLogin = (userType: string) => {
     const credentials: Record<string, { username: string; password: string }> = {
+      // Original Master Admin
       master: { username: 'masteradmin', password: 'admin123' },
-      sales: { username: 'sales_admin', password: 'sales123' },
-      pr: { username: 'pr_admin', password: 'pr123' },
-      marketing: { username: 'marketing_admin', password: 'marketing123' },
-      operations: { username: 'ops_admin', password: 'ops123' }
+      // Chairman - from populated users
+      chairman: { username: 'rajesh_chairman', password: 'chairman123' },
+      // Directors - from populated users  
+      director1: { username: 'priya_director', password: 'director123' },
+      director2: { username: 'ankit_director', password: 'director123' },
+      // Staff members - from populated users
+      staff1: { username: 'suresh_staff', password: 'staff123' },
+      staff2: { username: 'meera_staff', password: 'staff123' }
     };
 
     const creds = credentials[userType];
-    console.log('⚡ Quick login for:', userType, 'with credentials:', creds);
-    setUsername(creds.username);
-    setPassword(creds.password);
+    if (creds) {
+      console.log('⚡ Quick login for:', userType, 'with credentials:', creds);
+      setUsername(creds.username);
+      setPassword(creds.password);
+    }
   };
 
   return (
@@ -145,22 +152,34 @@ export function LoginPage() {
                 Master Admin
               </button>
               <button
-                onClick={() => quickLogin('sales')}
+                onClick={() => quickLogin('chairman')}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600/20 hover:bg-red-600/30 text-red-200 text-xs rounded-lg transition-colors"
+              >
+                Chairman
+              </button>
+              <button
+                onClick={() => quickLogin('director1')}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 text-xs rounded-lg transition-colors"
+              >
+                Director 1
+              </button>
+              <button
+                onClick={() => quickLogin('director2')}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 text-xs rounded-lg transition-colors"
+              >
+                Director 2
+              </button>
+              <button
+                onClick={() => quickLogin('staff1')}
                 className="px-2 sm:px-3 py-1.5 sm:py-2 bg-green-600/20 hover:bg-green-600/30 text-green-200 text-xs rounded-lg transition-colors"
               >
-                Sales Admin
+                Staff 1
               </button>
               <button
-                onClick={() => quickLogin('pr')}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-200 text-xs rounded-lg transition-colors"
+                onClick={() => quickLogin('staff2')}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-green-600/20 hover:bg-green-600/30 text-green-200 text-xs rounded-lg transition-colors"
               >
-                PR Admin
-              </button>
-              <button
-                onClick={() => quickLogin('marketing')}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-yellow-600/20 hover:bg-yellow-600/30 text-yellow-200 text-xs rounded-lg transition-colors"
-              >
-                Marketing Admin
+                Staff 2
               </button>
             </div>
           </div>

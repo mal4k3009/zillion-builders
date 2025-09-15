@@ -3,11 +3,10 @@ import { X, Plus, User, Mail, Lock, Building } from 'lucide-react';
 import { User as UserType } from '../../types';
 import { useApp } from '../../context/AppContext';
 
-const departments = [
-  { id: 'sales', name: 'Sales', color: '#10B981' },
-  { id: 'pr', name: 'Public Relations', color: '#8B5CF6' },
-  { id: 'marketing', name: 'Marketing', color: '#F59E0B' },
-  { id: 'operations', name: 'Operations', color: '#3B82F6' }
+const designations = [
+  { id: 'chairman', name: 'Chairman', color: '#DC2626' },
+  { id: 'director', name: 'Director', color: '#7C3AED' },
+  { id: 'staff', name: 'Staff', color: '#059669' }
 ];
 
 interface UserModalProps {
@@ -24,9 +23,10 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
     email: '',
     username: '',
     password: '',
-    department: ''
+    designation: ''
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -35,7 +35,7 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
         email: user.email,
         username: user.username,
         password: user.password,
-        department: user.department
+        designation: user.designation
       });
     } else {
       setFormData({
@@ -43,26 +43,73 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
         email: '',
         username: '',
         password: '',
-        department: ''
+        designation: ''
       });
     }
+    setError(''); // Clear any previous errors when modal opens
   }, [user, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
+      // Validate required fields
+      if (!formData.name.trim()) {
+        throw new Error('Full name is required.');
+      }
+      if (!formData.email.trim()) {
+        throw new Error('Email address is required.');
+      }
+      if (!formData.username.trim()) {
+        throw new Error('Username is required.');
+      }
+      if (!formData.password.trim()) {
+        throw new Error('Password is required.');
+      }
+      if (!formData.designation) {
+        throw new Error('Designation is required.');
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        throw new Error('Please enter a valid email address.');
+      }
+
+      // Check if username already exists (for new users)
+      if (mode === 'create') {
+        const existingUser = state.users.find(u => u.username === formData.username);
+        if (existingUser) {
+          throw new Error('Username already exists. Please choose a different username.');
+        }
+        
+        // Check if email already exists
+        const existingEmail = state.users.find(u => u.email === formData.email);
+        if (existingEmail) {
+          throw new Error('Email address already exists. Please use a different email.');
+        }
+      }
+
+      // Determine role based on designation
+      let userRole: 'master' | 'sub';
+      if (formData.designation === 'chairman' || formData.designation === 'director') {
+        userRole = 'master'; // Chairman and Director have master privileges
+      } else {
+        userRole = 'sub'; // Staff members are sub users
+      }
+
       const userData = {
         name: formData.name,
         email: formData.email,
         username: formData.username,
         password: formData.password,
-        role: 'sub' as const,
-        department: formData.department,
+        role: userRole,
+        designation: formData.designation,
         status: user?.status || 'active' as const,
         createdAt: user?.createdAt || new Date().toISOString(),
-        lastLogin: user?.lastLogin
+        ...(user?.lastLogin && { lastLogin: user.lastLogin }) // Only include lastLogin if it exists
       };
 
       if (mode === 'create') {
@@ -71,17 +118,26 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
         // Add activity
         await createActivity({
           type: 'user_created',
-          description: `Created new sub admin account for ${departments.find(d => d.id === formData.department)?.name} department`,
+          description: `Created new ${designations.find(d => d.id === formData.designation)?.name} account: ${formData.name}`,
           userId: state.currentUser!.id,
           timestamp: new Date().toISOString()
         });
       } else {
         await updateUser(user!.id, userData);
+        
+        // Add activity for edit
+        await createActivity({
+          type: 'user_updated',
+          description: `Updated ${designations.find(d => d.id === formData.designation)?.name} account: ${formData.name}`,
+          userId: state.currentUser!.id,
+          timestamp: new Date().toISOString()
+        });
       }
 
       onClose();
     } catch (error) {
       console.error('Error saving user:', error);
+      setError(error instanceof Error ? error.message : 'Failed to save user. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -94,7 +150,7 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
       <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-2xl w-full max-w-md max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
         <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
-            {mode === 'create' ? 'Create Sub Admin' : 'Edit Sub Admin'}
+            {mode === 'create' ? 'Add User' : 'Edit User'}
           </h2>
           <button
             onClick={onClose}
@@ -105,6 +161,12 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-120px)]">
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <User className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1 sm:mr-2" />
@@ -138,18 +200,18 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               <Building className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1 sm:mr-2" />
-              Department
+              Designation
             </label>
             <select
-              value={formData.department}
-              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+              value={formData.designation}
+              onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
               className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
               required
             >
-              <option value="">Select Department</option>
-              {departments.map(dept => (
-                <option key={dept.id} value={dept.id}>
-                  {dept.name}
+              <option value="">Select Designation</option>
+              {designations.map(designation => (
+                <option key={designation.id} value={designation.id}>
+                  {designation.name}
                 </option>
               ))}
             </select>

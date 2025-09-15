@@ -78,7 +78,7 @@ export function TasksPage() {
     setShowTaskModal(true);
   };
 
-  const handleDeleteTask = async (taskId: number) => {
+  const handleDeleteTask = async (taskId: string) => {
     if (confirm('Are you sure you want to delete this task?')) {
       try {
         await deleteTask(taskId);
