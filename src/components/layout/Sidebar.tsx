@@ -8,7 +8,9 @@ import {
   BarChart3, 
   Settings,
   Smartphone,
-  Calendar
+  Calendar,
+  FolderOpen,
+  Tags
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -34,6 +36,20 @@ const navigationItems: NavigationItem[] = [
     icon: <CheckSquare className="w-5 h-5" />,
     href: '#tasks',
     roles: ['master', 'sub']
+  },
+  {
+    id: 'projects',
+    label: 'Projects',
+    icon: <FolderOpen className="w-5 h-5" />,
+    href: '#projects',
+    roles: ['master']
+  },
+  {
+    id: 'categories',
+    label: 'Categories',
+    icon: <Tags className="w-5 h-5" />,
+    href: '#categories',
+    roles: ['master']
   },
   {
     id: 'users',

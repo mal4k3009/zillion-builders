@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Calendar, 
   User, 
-  Flag, 
   MessageSquare, 
   Paperclip, 
   MoreHorizontal,
@@ -12,7 +11,7 @@ import {
 } from 'lucide-react';
 import { Task } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { departments, priorityLevels, taskStatuses } from '../../data/mockData';
+import { priorityLevels, taskStatuses } from '../../data/mockData';
 
 interface TaskCardProps {
   task: Task;
@@ -22,34 +21,42 @@ interface TaskCardProps {
 }
 
 export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
-  const { state } = useApp();
+  const { state, updateTask: updateTaskInContext, createActivity } = useApp();
   const [showActions, setShowActions] = useState(false);
   
   const assignedUser = state.users.find(u => u.id === task.assignedTo);
-  const department = departments.find(d => d.id === task.department);
   const priority = priorityLevels.find(p => p.id === task.priority);
   const status = taskStatuses.find(s => s.id === task.status);
   
+  // Find project and user category from backend data
+  const project = state.projects.find(p => p.id === task.projectId);
+  const userCategory = state.userCategories.find(c => c.id === task.categoryId);
+  
   const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed';
   const canEdit = state.currentUser?.role === 'master' || 
-                  (state.currentUser?.department === task.department && state.currentUser?.role === 'sub');
+                  (state.currentUser?.role === 'sub');
 
-  const handleStatusChange = (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string) => {
     if (canEdit) {
-      const updatedTask = { ...task, status: newStatus as Task['status'], updatedAt: new Date().toISOString() };
-      state.dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
-      
-      // Add activity
-      state.dispatch({
-        type: 'ADD_ACTIVITY',
-        payload: {
-          id: Date.now(),
-          type: 'task_updated',
-          description: `Updated task "${task.title}" status to ${newStatus}`,
-          userId: state.currentUser!.id,
-          timestamp: new Date().toISOString()
+      try {
+        await updateTaskInContext(task.id, { 
+          status: newStatus as Task['status'], 
+          updatedAt: new Date().toISOString() 
+        });
+        
+        // Add activity log for status change
+        if (createActivity) {
+          await createActivity({
+            type: 'task_updated',
+            description: `Changed task status from "${task.status}" to "${newStatus}" for: ${task.title}`,
+            userId: state.currentUser!.id,
+            timestamp: new Date().toISOString()
+          });
         }
-      });
+      } catch (error) {
+        console.error('Error updating task status:', error);
+        // TODO: Show error message to user
+      }
     }
   };
 
@@ -65,7 +72,7 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
     <div className={`
       bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border-l-4 p-4 sm:p-6 
       hover:shadow-md transition-all duration-200
-      ${isOverdue ? 'border-l-red-500 bg-red-50/30 dark:bg-red-900/10' : `border-l-[${department?.color}]`}
+      ${isOverdue ? 'border-l-red-500 bg-red-50/30 dark:bg-red-900/10' : 'border-l-blue-500'}
     `}>
       <div className="flex items-start justify-between mb-3 sm:mb-4">
         <div className="flex-1 min-w-0">
@@ -116,15 +123,31 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-3 sm:mb-4">
-        <div className="flex items-center gap-2">
-          <div 
-            className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0" 
-            style={{ backgroundColor: department?.color }}
-          />
-          <span className="text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white truncate">
-            {department?.name}
-          </span>
-        </div>
+        {/* Project Information */}
+        {project && (
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0" 
+              style={{ backgroundColor: '#3B82F6' }}
+            />
+            <span className="text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white truncate">
+              📁 {project.name}
+            </span>
+          </div>
+        )}
+
+        {/* Category Information */}
+        {userCategory && (
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0" 
+              style={{ backgroundColor: userCategory.color || '#6B7280' }}
+            />
+            <span className="text-xs sm:text-sm text-medium-gray truncate">
+              🏷️ {userCategory.name}
+            </span>
+          </div>
+        )}
 
         <div className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0`} style={{ 
           backgroundColor: `${priority?.color}20`, 

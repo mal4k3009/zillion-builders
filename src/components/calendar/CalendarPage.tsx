@@ -2,8 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { TaskModal } from '../tasks/TaskModal';
-import { Task } from '../../types';
-import { departments, priorityLevels } from '../../data/mockData';
+import { priorityLevels } from '../../data/mockData';
 
 export function CalendarPage() {
   const { state } = useApp();
@@ -15,7 +14,7 @@ export function CalendarPage() {
     if (state.currentUser?.role === 'master') {
       return state.tasks;
     }
-    return state.tasks.filter(task => task.department === state.currentUser?.department);
+    return state.tasks.filter(task => task.assignedTo === state.currentUser?.id);
   };
 
   const tasks = getUserTasks();
@@ -193,21 +192,19 @@ export function CalendarPage() {
               <div className="space-y-3">
                 {selectedDateTasks.map(task => {
                   const assignedUser = state.users.find(u => u.id === task.assignedTo);
-                  const department = departments.find(d => d.id === task.department);
                   const priority = priorityLevels.find(p => p.id === task.priority);
                   const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed';
 
                   return (
                     <div
                       key={task.id}
-                      className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border-l-4"
-                      style={{ borderColor: department?.color }}
+                      className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border-l-4 border-l-blue-500"
                     >
                       <h4 className="font-medium text-gray-900 dark:text-white mb-1">
                         {task.title}
                       </h4>
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        {assignedUser?.name}
+                        {assignedUser?.name} • {task.category}
                       </p>
                       <div className="flex items-center justify-between">
                         <div className={`px-2 py-1 rounded-full text-xs font-medium`} style={{ 

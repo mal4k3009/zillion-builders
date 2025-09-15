@@ -1,7 +1,7 @@
 import React from 'react';
 import { Calendar, User, Flag, ArrowRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { departments, priorityLevels } from '../../data/mockData';
+import { priorityLevels } from '../../data/mockData';
 
 export function RecentTasks() {
   const { state } = useApp();
@@ -10,7 +10,7 @@ export function RecentTasks() {
     if (state.currentUser?.role === 'master') {
       return state.tasks;
     }
-    return state.tasks.filter(task => task.department === state.currentUser?.department);
+    return state.tasks.filter(task => task.assignedTo === state.currentUser?.id);
   };
 
   const recentTasks = getUserTasks()
@@ -40,7 +40,6 @@ export function RecentTasks() {
         <div className="space-y-4">
           {recentTasks.map((task) => {
             const assignedUser = state.users.find(u => u.id === task.assignedTo);
-            const department = departments.find(d => d.id === task.department);
             const priority = priorityLevels.find(p => p.id === task.priority);
             const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed';
 
@@ -52,9 +51,9 @@ export function RecentTasks() {
                   </h4>
                   <div className="flex items-center gap-3 mt-1">
                     <div className="flex items-center gap-1">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: department?.color }} />
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
                       <span className="text-xs text-medium-gray">
-                        {department?.name}
+                        {task.category}
                       </span>
                     </div>
                     <div className="flex items-center gap-1">

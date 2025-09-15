@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Calendar, Flag, User } from 'lucide-react';
-import { Task } from '../../types';
+import { X, Plus, Calendar, User } from 'lucide-react';
+import { Task, Project, UserCategory } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { projectsService, userCategoriesService } from '../../firebase/services';
 // import { notificationService } from '../../services/notificationService'; // DISABLED - n8n will handle notifications
 
 interface TaskModalProps {
@@ -10,13 +11,6 @@ interface TaskModalProps {
   task?: Task | null;
   mode: 'create' | 'edit' | 'view';
 }
-
-const departments = [
-  { id: 'sales', name: 'Sales', color: '#10B981' },
-  { id: 'pr', name: 'Public Relations', color: '#8B5CF6' },
-  { id: 'marketing', name: 'Marketing', color: '#F59E0B' },
-  { id: 'operations', name: 'Operations', color: '#3B82F6' }
-];
 
 const priorityLevels = [
   { id: 'low', name: 'Low', color: '#6B7280' },
@@ -37,21 +31,49 @@ const formatDate = (dateString: string) => {
 
 export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   const { state, createTask, updateTask, createNotification, createActivity } = useApp();
+  const [userCategories, setUserCategories] = useState<UserCategory[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    department: '',
+    projectId: '',
+    userCategoryId: '',
+    category: '', // Renamed from department
     assignedTo: '',
     priority: 'medium' as Task['priority'],
     dueDate: ''
   });
 
+  // Load user categories and projects when component mounts
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [allUserCategories, allProjects] = await Promise.all([
+          userCategoriesService.getAll(),
+          projectsService.getAll()
+        ]);
+        setUserCategories(allUserCategories);
+        setProjects(allProjects);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setUserCategories([]);
+        setProjects([]);
+      }
+    };
+    
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (task) {
       setFormData({
         title: task.title,
-        description: task.description,
-        department: task.department,
+        description: task.description || '',
+        projectId: task.projectId?.toString() || '',
+        userCategoryId: task.categoryId?.toString() || '',
+        category: task.category,
         assignedTo: task.assignedTo.toString(),
         priority: task.priority,
         dueDate: new Date(task.dueDate).toISOString().slice(0, 16)
@@ -60,7 +82,9 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       setFormData({
         title: '',
         description: '',
-        department: '',
+        projectId: '',
+        userCategoryId: '',
+        category: '',
         assignedTo: '',
         priority: 'medium',
         dueDate: ''
@@ -73,22 +97,26 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
     
     const taskData = {
       title: formData.title,
-      description: formData.description,
-      department: formData.department,
+      description: formData.description || undefined,
+      category: formData.category || 'general',
       assignedTo: parseInt(formData.assignedTo),
       priority: formData.priority,
-      status: task?.status || 'pending' as Task['status'],
-      dueDate: new Date(formData.dueDate).toISOString(),
-      createdAt: task?.createdAt || new Date().toISOString(),
+      status: 'pending' as Task['status'],
+      projectId: formData.projectId ? parseInt(formData.projectId) : undefined,
+      categoryId: formData.userCategoryId ? parseInt(formData.userCategoryId) : undefined,
+      dueDate: formData.dueDate,
+      createdBy: 1, // TODO: Get from auth
+      createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      createdBy: task?.createdBy || state.currentUser!.id,
-      comments: task?.comments || [],
-      attachments: task?.attachments || []
+      tags: [],
+      subtasks: [],
+      comments: [],
+      attachments: []
     };
 
     try {
       if (mode === 'create') {
-        const taskId = await createTask(taskData);
+        await createTask(taskData);
         
         // Find the assigned user
         const assignedUser = state.users.find(u => u.id === parseInt(formData.assignedTo));
@@ -98,7 +126,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
           userId: parseInt(formData.assignedTo),
           title: 'New Task Assigned',
           message: `You have been assigned: ${formData.title}`,
-          type: 'task',
+          type: 'task_assigned',
           isRead: false,
           createdAt: new Date().toISOString(),
           actionUrl: `/tasks`
@@ -118,19 +146,12 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
         // Add activity
         await createActivity({
           type: 'task_created',
-          description: `Created new task "${formData.title}" for ${departments.find(d => d.id === formData.department)?.name} department`,
+          description: `Created new task "${formData.title}"`,
           userId: state.currentUser!.id,
           timestamp: new Date().toISOString()
         });
       } else if (mode === 'edit') {
         await updateTask(task!.id, taskData);
-        
-        // If task status changed to completed, send notification (DISABLED - n8n will handle notifications)
-        if (task?.status !== 'completed' && taskData.status === 'completed') {
-          const completedBy = state.currentUser?.name || 'User';
-          console.log('📴 Task completion notification disabled - n8n will handle notification for:', completedBy);
-          // await notificationService.sendTaskCompletedNotification(completedBy, formData.title);
-        }
         
         // Add activity
         await createActivity({
@@ -146,14 +167,64 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
     }
   };
 
+  const handleSubmitWithApproval = async (submitData: typeof formData & { approvalStatus: 'pending_approval' }) => {
+    const taskData = {
+      title: submitData.title,
+      description: submitData.description || undefined,
+      category: submitData.category || 'general',
+      assignedTo: parseInt(submitData.assignedTo),
+      priority: submitData.priority,
+      status: 'pending' as Task['status'],
+      projectId: submitData.projectId ? parseInt(submitData.projectId) : undefined,
+      categoryId: submitData.userCategoryId ? parseInt(submitData.userCategoryId) : undefined,
+      dueDate: submitData.dueDate,
+      createdBy: 1, // TODO: Get from auth
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      approvalStatus: submitData.approvalStatus,
+      tags: [],
+      subtasks: [],
+      comments: [],
+      attachments: []
+    };
+
+    try {
+      await createTask(taskData);
+      
+      // Add notification for master admin about approval request
+      const masterUsers = state.users.filter(u => u.role === 'master');
+      for (const masterUser of masterUsers) {
+        await createNotification({
+          userId: masterUser.id,
+          title: 'Task Approval Required',
+          message: `New task "${submitData.title}" submitted for approval`,
+          type: 'approval_required',
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          actionUrl: `/dashboard`
+        });
+      }
+
+      // Add activity
+      await createActivity({
+        type: 'task_created',
+        description: `Created new task "${submitData.title}" for approval`,
+        userId: state.currentUser!.id,
+        timestamp: new Date().toISOString()
+      });
+
+      onClose();
+    } catch (error) {
+      console.error('Error creating task for approval:', error);
+    }
+  };
+
   const departmentUsers = state.users.filter(u => 
-    u.department === formData.department && u.role === 'sub'
+    u.role === 'sub'
   );
 
   if (!isOpen) return null;
 
-  const department = departments.find(d => d.id === task?.department);
-  const priority = priorityLevels.find(p => p.id === task?.priority);
   const isOverdue = task ? new Date(task.dueDate) < new Date() && task.status !== 'completed' : false;
 
   return (
@@ -186,23 +257,20 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Department
+                    Category
                   </label>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0" style={{ backgroundColor: department?.color }} />
-                    <span className="text-xs sm:text-sm text-gray-900 dark:text-white truncate">{department?.name}</span>
-                  </div>
+                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white">
+                    {task?.category || 'No category assigned'}
+                  </span>
                 </div>
 
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Priority
                   </label>
-                  <div className={`inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 rounded-full text-xs font-medium`} 
-                       style={{ backgroundColor: `${priority?.color}20`, color: priority?.color }}>
-                    <Flag className="w-2 h-2 sm:w-3 sm:h-3" />
-                    {priority?.name}
-                  </div>
+                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white capitalize">
+                    {task?.priority}
+                  </span>
                 </div>
 
                 <div>
@@ -255,6 +323,65 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   </div>
                 </div>
               )}
+
+              {/* Approval Actions for Master Admin */}
+              {task?.approvalStatus === 'pending_approval' && state.currentUser?.role === 'master' && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Approval Actions
+                  </h4>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await updateTask(task.id, { 
+                            approvalStatus: 'approved',
+                            updatedAt: new Date().toISOString()
+                          });
+                          
+                          await createActivity({
+                            type: 'task_updated',
+                            description: `Approved task: ${task.title}`,
+                            userId: state.currentUser!.id,
+                            timestamp: new Date().toISOString()
+                          });
+
+                          onClose();
+                        } catch (error) {
+                          console.error('Error approving task:', error);
+                        }
+                      }}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      Approve Task
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await updateTask(task.id, { 
+                            approvalStatus: 'rejected',
+                            updatedAt: new Date().toISOString()
+                          });
+                          
+                          await createActivity({
+                            type: 'task_updated',
+                            description: `Rejected task: ${task.title}`,
+                            userId: state.currentUser!.id,
+                            timestamp: new Date().toISOString()
+                          });
+
+                          onClose();
+                        } catch (error) {
+                          console.error('Error rejecting task:', error);
+                        }
+                      }}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      Reject Task
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
@@ -274,38 +401,56 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
 
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Description
+                  Description <span className="text-gray-400">(Optional)</span>
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
                   className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  placeholder="Enter task description"
-                  required
+                  placeholder="Enter task description (optional)"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Department
+                    Project
                   </label>
                   <select
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value, assignedTo: '' })}
+                    value={formData.projectId}
+                    onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    required
                   >
-                    <option value="">Select Department</option>
-                    {departments.map(dept => (
-                      <option key={dept.id} value={dept.id}>
-                        {dept.name}
+                    <option value="">Select Project (Optional)</option>
+                    {projects.map(project => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
                       </option>
                     ))}
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Category
+                  </label>
+                  <select
+                    value={formData.userCategoryId}
+                    onChange={(e) => setFormData({ ...formData, userCategoryId: e.target.value })}
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  >
+                    <option value="">Select Category (Optional)</option>
+                    {userCategories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Assign To
@@ -315,7 +460,6 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                     onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
                     className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     required
-                    disabled={!formData.department}
                   >
                     <option value="">Select User</option>
                     {departmentUsers.map(user => (
@@ -366,13 +510,43 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-                  {mode === 'create' ? 'Create Task' : 'Update Task'}
-                </button>
+                
+                {/* Show different submit options based on user role */}
+                {mode === 'create' && state.currentUser?.role !== 'master' ? (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      type="submit"
+                      className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                      Create Task
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        // Submit with approval status
+                        const submitData = {
+                          ...formData,
+                          approvalStatus: 'pending_approval' as const
+                        };
+                        handleSubmitWithApproval(submitData);
+                      }}
+                      className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                    >
+                      <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                      Submit for Approval
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="submit"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                    {mode === 'create' ? 'Create Task' : 'Update Task'}
+                  </button>
+                )}
               </div>
             </form>
           )}

@@ -1,43 +1,42 @@
-import React from 'react';
 import { useApp } from '../../context/AppContext';
 
 export function TaskChart() {
   const { state } = useApp();
 
-  const getDepartmentStats = () => {
-    const stats = {
-      sales: { pending: 0, inProgress: 0, completed: 0 },
-      pr: { pending: 0, inProgress: 0, completed: 0 },
-      marketing: { pending: 0, inProgress: 0, completed: 0 },
-      operations: { pending: 0, inProgress: 0, completed: 0 }
-    };
+  const getTaskStats = () => {
+    // Create dynamic stats based on available categories
+    const categoryStats: Record<string, { pending: number; inProgress: number; completed: number }> = {};
 
     state.tasks.forEach(task => {
-      if (stats[task.department as keyof typeof stats]) {
-        if (task.status === 'pending') stats[task.department as keyof typeof stats].pending++;
-        else if (task.status === 'in-progress') stats[task.department as keyof typeof stats].inProgress++;
-        else if (task.status === 'completed') stats[task.department as keyof typeof stats].completed++;
+      const category = task.category || 'uncategorized';
+      
+      if (!categoryStats[category]) {
+        categoryStats[category] = { pending: 0, inProgress: 0, completed: 0 };
       }
+
+      if (task.status === 'pending') categoryStats[category].pending++;
+      else if (task.status === 'in-progress') categoryStats[category].inProgress++;
+      else if (task.status === 'completed') categoryStats[category].completed++;
     });
 
-    return stats;
+    return categoryStats;
   };
 
-  const stats = getDepartmentStats();
-  const maxValue = Math.max(...Object.values(stats).flatMap(dept => [dept.pending, dept.inProgress, dept.completed]));
+  const stats = getTaskStats();
+  const maxValue = Math.max(...Object.values(stats).flatMap(category => [category.pending, category.inProgress, category.completed]));
 
   return (
     <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black">
       <div className="p-6 border-b border-light-gray dark:border-soft-black">
-        <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white">Tasks by Department</h3>
+        <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white">Tasks by Category</h3>
       </div>
       <div className="p-6">
         <div className="space-y-6">
-          {Object.entries(stats).map(([dept, data]) => (
-            <div key={dept} className="space-y-2">
+          {Object.entries(stats).map(([category, data]) => (
+            <div key={category} className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-deep-charcoal dark:text-pure-white capitalize">
-                  {dept}
+                  {category}
                 </span>
                 <span className="text-sm text-medium-gray">
                   {data.pending + data.inProgress + data.completed} total
@@ -45,12 +44,12 @@ export function TaskChart() {
               </div>
               <div className="flex gap-1 h-2">
                 <div 
-                  className={`${dept === 'sales' ? 'bg-brand-gold' : 'bg-yellow-500'} rounded-full`}
+                  className="bg-yellow-500 rounded-full"
                   style={{ width: `${(data.pending / (maxValue || 1)) * 100}%` }}
                   title={`Pending: ${data.pending}`}
                 />
                 <div 
-                  className={`${dept === 'sales' ? 'bg-accent-gold' : 'bg-blue-500'} rounded-full`}
+                  className="bg-blue-500 rounded-full"
                   style={{ width: `${(data.inProgress / (maxValue || 1)) * 100}%` }}
                   title={`In Progress: ${data.inProgress}`}
                 />

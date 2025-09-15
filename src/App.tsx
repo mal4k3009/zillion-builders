@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { ToastProvider } from './components/notifications/ToastContainer';
 import { LoginPage } from './components/auth/LoginPage';
@@ -14,6 +14,8 @@ import { AnalyticsPage } from './components/analytics/AnalyticsPage';
 import { WhatsAppPage } from './components/whatsapp/WhatsAppPage';
 import { CalendarPage } from './components/calendar/CalendarPage';
 import { SettingsPage } from './components/settings/SettingsPage';
+import { ProjectsPage } from './components/projects/ProjectsPage';
+import { CategoriesPage } from './components/categories/CategoriesPage';
 // import { notificationService } from './services/notificationService'; // DISABLED - n8n will handle notifications
 
 function AppContent() {
@@ -54,6 +56,10 @@ function AppContent() {
         return <TasksPage />;
       case 'users':
         return state.currentUser?.role === 'master' ? <UsersPage /> : <DashboardPage />;
+      case 'projects':
+        return state.currentUser?.role === 'master' ? <ProjectsPage /> : <DashboardPage />;
+      case 'categories':
+        return state.currentUser?.role === 'master' ? <CategoriesPage /> : <DashboardPage />;
       case 'chat':
         return <ChatPage />;
       case 'notifications':

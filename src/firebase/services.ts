@@ -13,7 +13,7 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from './config';
-import { User, Task, ChatMessage, Notification, WhatsAppMessage, Activity } from '../types';
+import { User, Task, ChatMessage, Notification, WhatsAppMessage, Activity, Project, Category, UserCategory } from '../types';
 
 // Users Service
 export const usersService = {
@@ -86,10 +86,10 @@ export const tasksService = {
     return docSnap.exists() ? { id, ...docSnap.data() } as Task : null;
   },
 
-  async getByDepartment(department: string): Promise<Task[]> {
+  async getByCategory(category: string): Promise<Task[]> {
     const q = query(
       collection(db, 'tasks'), 
-      where('department', '==', department),
+      where('category', '==', category),
       orderBy('createdAt', 'desc')
     );
     const querySnapshot = await getDocs(q);
@@ -557,9 +557,9 @@ export const dashboardService = {
       new Date(task.dueDate) < new Date() && task.status !== 'completed'
     ).length;
 
-    const departmentStats: Record<string, number> = {};
+    const categoryStats: Record<string, number> = {};
     tasks.forEach(task => {
-      departmentStats[task.department] = (departmentStats[task.department] || 0) + 1;
+      categoryStats[task.category] = (categoryStats[task.category] || 0) + 1;
     });
 
     return {
@@ -568,7 +568,7 @@ export const dashboardService = {
       inProgressTasks,
       completedTasks,
       overdueTasks,
-      departmentStats,
+      categoryStats,
       recentActivity: activities
     };
   }
@@ -600,5 +600,191 @@ export const referenceDataService = {
       { id: 'in-progress', name: 'In Progress', color: '#F59E0B' },
       { id: 'completed', name: 'Completed', color: '#10B981' }
     ];
+  }
+};
+
+// Projects Service
+export const projectsService = {
+  async getAll(): Promise<Project[]> {
+    const projectsSnapshot = await getDocs(collection(db, 'projects'));
+    const projects: Project[] = [];
+    
+    for (const projectDoc of projectsSnapshot.docs) {
+      const projectData = projectDoc.data();
+      
+      // Get categories for this project
+      const categoriesSnapshot = await getDocs(
+        query(collection(db, 'categories'), where('projectId', '==', parseInt(projectDoc.id)))
+      );
+      
+      const categories = categoriesSnapshot.docs.map(categoryDoc => ({
+        id: parseInt(categoryDoc.id),
+        ...categoryDoc.data()
+      } as Category));
+      
+      projects.push({
+        id: parseInt(projectDoc.id),
+        ...projectData,
+        categories
+      } as Project);
+    }
+    
+    return projects;
+  },
+
+  async getById(id: number): Promise<Project | null> {
+    const docRef = doc(db, 'projects', id.toString());
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) return null;
+    
+    // Get categories for this project
+    const categoriesSnapshot = await getDocs(
+      query(collection(db, 'categories'), where('projectId', '==', id))
+    );
+    
+    const categories = categoriesSnapshot.docs.map(categoryDoc => ({
+      id: parseInt(categoryDoc.id),
+      ...categoryDoc.data()
+    } as Category));
+    
+    return {
+      id,
+      ...docSnap.data(),
+      categories
+    } as Project;
+  },
+
+  async create(projectData: Omit<Project, 'id' | 'categories'>): Promise<string> {
+    const docRef = await addDoc(collection(db, 'projects'), {
+      ...projectData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return docRef.id;
+  },
+
+  async update(id: number, projectData: Partial<Project>): Promise<void> {
+    const docRef = doc(db, 'projects', id.toString());
+    await updateDoc(docRef, {
+      ...projectData,
+      updatedAt: serverTimestamp()
+    });
+  },
+
+  async delete(id: number): Promise<void> {
+    // First delete all categories associated with this project
+    const categoriesSnapshot = await getDocs(
+      query(collection(db, 'categories'), where('projectId', '==', id))
+    );
+    
+    const deletePromises = categoriesSnapshot.docs.map(categoryDoc => 
+      deleteDoc(doc(db, 'categories', categoryDoc.id))
+    );
+    
+    await Promise.all(deletePromises);
+    
+    // Then delete the project
+    const docRef = doc(db, 'projects', id.toString());
+    await deleteDoc(docRef);
+  }
+};
+
+// Categories Service
+export const categoriesService = {
+  async getAll(): Promise<Category[]> {
+    const querySnapshot = await getDocs(collection(db, 'categories'));
+    return querySnapshot.docs.map(doc => ({
+      id: parseInt(doc.id),
+      ...doc.data()
+    } as Category));
+  },
+
+  async getByProjectId(projectId: number): Promise<Category[]> {
+    const q = query(collection(db, 'categories'), where('projectId', '==', projectId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: parseInt(doc.id),
+      ...doc.data()
+    } as Category));
+  },
+
+  async create(categoryData: Omit<Category, 'id'>): Promise<string> {
+    const docRef = await addDoc(collection(db, 'categories'), {
+      ...categoryData,
+      createdAt: serverTimestamp()
+    });
+    return docRef.id;
+  },
+
+  async update(id: number, categoryData: Partial<Category>): Promise<void> {
+    const docRef = doc(db, 'categories', id.toString());
+    await updateDoc(docRef, categoryData);
+  },
+
+  async delete(id: number): Promise<void> {
+    const docRef = doc(db, 'categories', id.toString());
+    await deleteDoc(docRef);
+  },
+
+  // Get all categories for dropdown/selection purposes
+  async getAllForSelection(): Promise<Array<{id: number, name: string, color?: string, projectName: string}>> {
+    const projects = await projectsService.getAll();
+    const allCategories: Array<{id: number, name: string, color?: string, projectName: string}> = [];
+    
+    projects.forEach(project => {
+      project.categories.forEach(category => {
+        allCategories.push({
+          id: category.id,
+          name: category.name,
+          color: category.color,
+          projectName: project.name
+        });
+      });
+    });
+    
+    return allCategories;
+  }
+};
+
+// User Categories Service
+export const userCategoriesService = {
+  async getAll(): Promise<UserCategory[]> {
+    const querySnapshot = await getDocs(collection(db, 'userCategories'));
+    return querySnapshot.docs.map(doc => ({
+      id: parseInt(doc.id),
+      ...doc.data()
+    } as UserCategory));
+  },
+
+  async create(categoryData: Omit<UserCategory, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    const docRef = await addDoc(collection(db, 'userCategories'), {
+      ...categoryData,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    return docRef.id;
+  },
+
+  async update(id: number, categoryData: Partial<UserCategory>): Promise<void> {
+    const docRef = doc(db, 'userCategories', id.toString());
+    await updateDoc(docRef, {
+      ...categoryData,
+      updatedAt: serverTimestamp()
+    });
+  },
+
+  async delete(id: number): Promise<void> {
+    const docRef = doc(db, 'userCategories', id.toString());
+    await deleteDoc(docRef);
+  },
+
+  async getByUserId(userId: number): Promise<UserCategory[]> {
+    const q = query(collection(db, 'userCategories'), where('assignedUsers', 'array-contains', userId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({
+      id: parseInt(doc.id),
+      ...doc.data()
+    } as UserCategory));
   }
 };

@@ -24,21 +24,21 @@ export function TasksPage() {
   const filteredTasks = useMemo(() => {
     let tasks = state.tasks;
 
-    // Filter by user role
+    // Filter by user role - show only assigned tasks for sub users
     if (state.currentUser?.role === 'sub') {
-      tasks = tasks.filter(task => task.department === state.currentUser?.department);
+      tasks = tasks.filter(task => task.assignedTo === state.currentUser?.id);
     }
 
     // Apply filters
     if (searchTerm) {
       tasks = tasks.filter(task =>
         task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.description.toLowerCase().includes(searchTerm.toLowerCase())
+        (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     if (departmentFilter) {
-      tasks = tasks.filter(task => task.department === departmentFilter);
+      tasks = tasks.filter(task => task.category === departmentFilter);
     }
 
     if (statusFilter) {

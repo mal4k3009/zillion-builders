@@ -1,8 +1,8 @@
-import React from 'react';
 import { DashboardCards } from './DashboardCards';
 import { ActivityFeed } from './ActivityFeed';
 import { TaskChart } from './TaskChart';
 import { RecentTasks } from './RecentTasks';
+import { ApprovalSection } from './ApprovalSection';
 
 export function DashboardPage() {
   return (
@@ -10,6 +10,9 @@ export function DashboardPage() {
       <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
         Dashboard
       </h1>
+      
+      {/* Approval Section for Admin Users */}
+      <ApprovalSection />
       
       <DashboardCards />
       

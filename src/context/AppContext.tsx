@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
-import { User, Task, ChatMessage, Notification, WhatsAppMessage, Activity } from '../types';
+import { User, Task, ChatMessage, Notification, WhatsAppMessage, Activity, Project, Category, UserCategory } from '../types';
 import { 
   usersService, 
   tasksService, 
   chatService, 
   notificationsService, 
   whatsappService, 
-  activitiesService 
+  activitiesService,
+  projectsService,
+  categoriesService,
+  userCategoriesService
 } from '../firebase/services';
 import { taskMonitoringService } from '../services/taskMonitoringService';
 
@@ -18,6 +21,8 @@ interface AppState {
   notifications: Notification[];
   whatsappMessages: WhatsAppMessage[];
   activities: Activity[];
+  projects: Project[];
+  userCategories: UserCategory[];
   theme: 'light' | 'dark';
   sidebarOpen: boolean;
   loading: boolean;
@@ -44,6 +49,14 @@ type AppAction =
   | { type: 'ADD_WHATSAPP_MESSAGE'; payload: WhatsAppMessage }
   | { type: 'SET_ACTIVITIES'; payload: Activity[] }
   | { type: 'ADD_ACTIVITY'; payload: Activity }
+  | { type: 'SET_PROJECTS'; payload: Project[] }
+  | { type: 'ADD_PROJECT'; payload: Project }
+  | { type: 'UPDATE_PROJECT'; payload: Project }
+  | { type: 'DELETE_PROJECT'; payload: number }
+  | { type: 'SET_USER_CATEGORIES'; payload: UserCategory[] }
+  | { type: 'ADD_USER_CATEGORY'; payload: UserCategory }
+  | { type: 'UPDATE_USER_CATEGORY'; payload: UserCategory }
+  | { type: 'DELETE_USER_CATEGORY'; payload: number }
   | { type: 'TOGGLE_THEME' }
   | { type: 'TOGGLE_SIDEBAR' };
 
@@ -55,6 +68,8 @@ const initialState: AppState = {
   notifications: [],
   whatsappMessages: [],
   activities: [],
+  projects: [],
+  userCategories: [],
   theme: 'light',
   sidebarOpen: true,
   loading: false
@@ -155,6 +170,46 @@ function appReducer(state: AppState, action: AppAction): AppState {
     case 'ADD_ACTIVITY':
       return { ...state, activities: [action.payload, ...state.activities] };
 
+    case 'SET_PROJECTS':
+      return { ...state, projects: action.payload };
+
+    case 'ADD_PROJECT':
+      return { ...state, projects: [...state.projects, action.payload] };
+
+    case 'UPDATE_PROJECT':
+      return {
+        ...state,
+        projects: state.projects.map(project =>
+          project.id === action.payload.id ? action.payload : project
+        )
+      };
+
+    case 'DELETE_PROJECT':
+      return {
+        ...state,
+        projects: state.projects.filter(project => project.id !== action.payload)
+      };
+
+    case 'SET_USER_CATEGORIES':
+      return { ...state, userCategories: action.payload };
+
+    case 'ADD_USER_CATEGORY':
+      return { ...state, userCategories: [...state.userCategories, action.payload] };
+
+    case 'UPDATE_USER_CATEGORY':
+      return {
+        ...state,
+        userCategories: state.userCategories.map(category =>
+          category.id === action.payload.id ? action.payload : category
+        )
+      };
+
+    case 'DELETE_USER_CATEGORY':
+      return {
+        ...state,
+        userCategories: state.userCategories.filter(category => category.id !== action.payload)
+      };
+
     case 'TOGGLE_THEME':
       return { ...state, theme: state.theme === 'light' ? 'dark' : 'light' };
 
@@ -185,6 +240,17 @@ interface AppContextType {
   createActivity: (activityData: Omit<Activity, 'id'>) => Promise<void>;
   setCurrentUser: (user: User, fcmToken?: string) => Promise<void>;
   logout: () => void;
+  // Project management functions
+  createProject: (projectData: Omit<Project, 'id' | 'categories'>) => Promise<void>;
+  updateProject: (id: number, projectData: Partial<Project>) => Promise<void>;
+  deleteProject: (id: number) => Promise<void>;
+  createCategory: (categoryData: Omit<Category, 'id'>) => Promise<void>;
+  updateCategory: (id: number, categoryData: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: number) => Promise<void>;
+  // User category management functions
+  createUserCategory: (categoryData: Omit<UserCategory, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateUserCategory: (id: number, categoryData: Partial<UserCategory>) => Promise<void>;
+  deleteUserCategory: (id: number) => Promise<void>;
   // Real-time chat functions
   subscribeToUserConversations: (userId: number) => () => void;
   subscribeToConversation: (userId1: number, userId2: number, callback?: (messages: ChatMessage[]) => void) => () => void;
@@ -203,13 +269,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
-      const [users, tasks, chatMessages, notifications, whatsappMessages, activities] = await Promise.all([
+      const [users, tasks, chatMessages, notifications, whatsappMessages, activities, projects, userCategories] = await Promise.all([
         usersService.getAll(),
         tasksService.getAll(),
         chatService.getAll(),
         notificationsService.getAll(),
         whatsappService.getAll(),
-        activitiesService.getAll()
+        activitiesService.getAll(),
+        projectsService.getAll(),
+        userCategoriesService.getAll()
       ]);
 
       dispatch({ type: 'SET_USERS', payload: users });
@@ -218,6 +286,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
       dispatch({ type: 'SET_WHATSAPP_MESSAGES', payload: whatsappMessages });
       dispatch({ type: 'SET_ACTIVITIES', payload: activities });
+      dispatch({ type: 'SET_PROJECTS', payload: projects });
+      dispatch({ type: 'SET_USER_CATEGORIES', payload: userCategories });
 
       // Initialize task monitoring service with users data
       taskMonitoringService.initialize(users);
@@ -260,10 +330,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Get the original task to check for assignee changes
       const originalTask = state.tasks.find(task => task.id === id);
       
+      if (!originalTask) {
+        console.error('Task not found for update:', id);
+        return;
+      }
+
+      // Create updated task object for immediate UI update
+      const updatedTask = { ...originalTask, ...taskData };
+      
+      // Update UI immediately
+      dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
+      
+      // Update in Firebase
       await tasksService.update(id, taskData);
       
       // Create notification if task status changed or assignedTo changed
-      if (originalTask && state.currentUser) {
+      if (state.currentUser) {
         // Check if status changed to completed, in-progress, etc.
         if (taskData.status && taskData.status !== originalTask.status) {
           const assignedUserId = taskData.assignedTo || originalTask.assignedTo;
@@ -295,9 +377,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       }
       
+      // Reload data to ensure sync with backend
       await loadAllData();
     } catch (error) {
       console.error('Error updating task:', error);
+      // If the update failed, reload data to revert to the correct state
+      await loadAllData();
     }
   };
 
@@ -583,6 +668,142 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Project operations
+  const createProject = async (projectData: Omit<Project, 'id' | 'categories'>) => {
+    try {
+      const projectId = await projectsService.create(projectData);
+      
+      // Optimistic update: Add new project to state immediately
+      const newProject: Project = {
+        ...projectData,
+        id: parseInt(projectId),
+        categories: []
+      };
+      dispatch({ type: 'ADD_PROJECT', payload: newProject });
+    } catch (error) {
+      console.error('Error creating project:', error);
+      // If error, reload data to sync with server
+      await loadAllData();
+    }
+  };
+
+  const updateProject = async (id: number, projectData: Partial<Project>) => {
+    try {
+      await projectsService.update(id, projectData);
+      
+      // Optimistic update: Update project in state immediately
+      const currentProject = state.projects.find(p => p.id === id);
+      if (currentProject) {
+        const updatedProject = { ...currentProject, ...projectData };
+        dispatch({ type: 'UPDATE_PROJECT', payload: updatedProject });
+      }
+    } catch (error) {
+      console.error('Error updating project:', error);
+      // If error, reload data to sync with server
+      await loadAllData();
+    }
+  };
+
+  const deleteProject = async (id: number) => {
+    try {
+      await projectsService.delete(id);
+      dispatch({ type: 'DELETE_PROJECT', payload: id });
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      // If error, reload data to sync with server
+      await loadAllData();
+    }
+  };
+
+  // Category operations
+  const createCategory = async (categoryData: Omit<Category, 'id'>) => {
+    try {
+      await categoriesService.create(categoryData);
+      
+      // For categories, we need to reload the projects to get updated categories
+      // This is necessary because categories are nested within projects
+      const updatedProjects = await projectsService.getAll();
+      dispatch({ type: 'SET_PROJECTS', payload: updatedProjects });
+    } catch (error) {
+      console.error('Error creating category:', error);
+    }
+  };
+
+  const updateCategory = async (id: number, categoryData: Partial<Category>) => {
+    try {
+      await categoriesService.update(id, categoryData);
+      
+      // Reload projects to get updated categories
+      const updatedProjects = await projectsService.getAll();
+      dispatch({ type: 'SET_PROJECTS', payload: updatedProjects });
+    } catch (error) {
+      console.error('Error updating category:', error);
+    }
+  };
+
+  const deleteCategory = async (id: number) => {
+    try {
+      await categoriesService.delete(id);
+      
+      // Reload projects to get updated categories
+      const updatedProjects = await projectsService.getAll();
+      dispatch({ type: 'SET_PROJECTS', payload: updatedProjects });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+    }
+  };
+
+  // User Category operations
+  const createUserCategory = async (categoryData: Omit<UserCategory, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const categoryId = await userCategoriesService.create(categoryData);
+      
+      // Optimistic update: Add new category to state immediately
+      const newCategory: UserCategory = {
+        ...categoryData,
+        id: parseInt(categoryId),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      dispatch({ type: 'ADD_USER_CATEGORY', payload: newCategory });
+    } catch (error) {
+      console.error('Error creating user category:', error);
+      // If error, reload data to sync with server
+      const updatedCategories = await userCategoriesService.getAll();
+      dispatch({ type: 'SET_USER_CATEGORIES', payload: updatedCategories });
+    }
+  };
+
+  const updateUserCategory = async (id: number, categoryData: Partial<UserCategory>) => {
+    try {
+      await userCategoriesService.update(id, categoryData);
+      
+      // Optimistic update: Update category in state immediately
+      const currentCategory = state.userCategories.find(c => c.id === id);
+      if (currentCategory) {
+        const updatedCategory = { ...currentCategory, ...categoryData };
+        dispatch({ type: 'UPDATE_USER_CATEGORY', payload: updatedCategory });
+      }
+    } catch (error) {
+      console.error('Error updating user category:', error);
+      // If error, reload data to sync with server
+      const updatedCategories = await userCategoriesService.getAll();
+      dispatch({ type: 'SET_USER_CATEGORIES', payload: updatedCategories });
+    }
+  };
+
+  const deleteUserCategory = async (id: number) => {
+    try {
+      await userCategoriesService.delete(id);
+      dispatch({ type: 'DELETE_USER_CATEGORY', payload: id });
+    } catch (error) {
+      console.error('Error deleting user category:', error);
+      // If error, reload data to sync with server
+      const updatedCategories = await userCategoriesService.getAll();
+      dispatch({ type: 'SET_USER_CATEGORIES', payload: updatedCategories });
+    }
+  };
+
   const contextValue: AppContextType = {
     state,
     dispatch,
@@ -601,6 +822,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     createActivity,
     setCurrentUser,
     logout,
+    createProject,
+    updateProject,
+    deleteProject,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+    createUserCategory,
+    updateUserCategory,
+    deleteUserCategory,
     subscribeToUserConversations,
     subscribeToConversation,
     markConversationAsRead,

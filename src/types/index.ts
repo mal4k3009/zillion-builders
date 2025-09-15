@@ -14,15 +14,18 @@ export interface User {
 export interface Task {
   id: number;
   title: string;
-  description: string;
-  department: string;
+  description?: string;
+  category: string;
   assignedTo: number;
   priority: 'low' | 'medium' | 'high' | 'urgent';
   status: 'pending' | 'in-progress' | 'completed';
+  approvalStatus?: 'pending_approval' | 'approved' | 'rejected';
   dueDate: string;
   createdAt: string;
   updatedAt: string;
   createdBy: number;
+  projectId?: number;
+  categoryId?: number;
   comments: TaskComment[];
   attachments: TaskAttachment[];
 }
@@ -62,7 +65,7 @@ export interface Notification {
   userId: number;
   title: string;
   message: string;
-  type: 'task_assigned' | 'task_updated' | 'message_received' | 'system' | 'task_completed';
+  type: 'task_assigned' | 'task_updated' | 'message_received' | 'system' | 'task_completed' | 'approval_required';
   isRead: boolean;
   createdAt: string;
   actionUrl?: string;
@@ -99,4 +102,35 @@ export interface Activity {
   description: string;
   userId: number;
   timestamp: string;
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  description: string;
+  status: 'active' | 'inactive' | 'completed';
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  categories: Category[];
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  description?: string;
+  color?: string;
+  projectId: number;
+  createdAt: string;
+}
+
+export interface UserCategory {
+  id: number;
+  name: string;
+  description?: string;
+  color?: string;
+  createdBy: number;
+  createdAt: string;
+  updatedAt: string;
+  assignedUsers: number[]; // Array of user IDs assigned to this category
 }

@@ -5,27 +5,30 @@ import { departments } from '../../data/mockData';
 
 export function AnalyticsPage() {
   const { state } = useApp();
-  // Compute department-wise task statistics
+  // Compute category-wise task statistics
 
-  const getDepartmentTaskStats = () => {
-    const stats = departments.map(dept => {
-      const deptTasks = state.tasks.filter(task => task.department === dept.id);
-      const completed = deptTasks.filter(t => t.status === 'completed').length;
-      const inProgress = deptTasks.filter(t => t.status === 'in-progress').length;
-      const pending = deptTasks.filter(t => t.status === 'pending').length;
-      const overdue = deptTasks.filter(t => 
+  const getCategoryTaskStats = () => {
+    // Get unique categories from tasks
+    const categories = [...new Set(state.tasks.map(task => task.category))].filter(Boolean);
+    
+    const stats = categories.map(category => {
+      const categoryTasks = state.tasks.filter(task => task.category === category);
+      const completed = categoryTasks.filter(t => t.status === 'completed').length;
+      const inProgress = categoryTasks.filter(t => t.status === 'in-progress').length;
+      const pending = categoryTasks.filter(t => t.status === 'pending').length;
+      const overdue = categoryTasks.filter(t => 
         new Date(t.dueDate) < new Date() && t.status !== 'completed'
       ).length;
 
       return {
-        department: dept.name,
-        color: dept.color,
-        total: deptTasks.length,
+        category: category,
+        color: '#3B82F6', // Default blue color
+        total: categoryTasks.length,
         completed,
         inProgress,
         pending,
         overdue,
-        completionRate: deptTasks.length > 0 ? Math.round((completed / deptTasks.length) * 100) : 0
+        completionRate: categoryTasks.length > 0 ? Math.round((completed / categoryTasks.length) * 100) : 0
       };
     });
 
@@ -73,7 +76,7 @@ export function AnalyticsPage() {
     };
   };
 
-  const departmentStats = getDepartmentTaskStats();
+  const categoryStats = getCategoryTaskStats();
   const priorityDistribution = getPriorityDistribution();
   const productivityMetrics = getProductivityMetrics();
 
@@ -154,26 +157,26 @@ export function AnalyticsPage() {
       {/* Department Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
-          <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-6">Department Performance</h3>
+          <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-6">Category Performance</h3>
           <div className="space-y-6">
-            {departmentStats.map((dept) => (
-              <div key={dept.department}>
+            {categoryStats.map((categoryData) => (
+              <div key={categoryData.category}>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-deep-charcoal dark:text-pure-white">{dept.department}</span>
-                  <span className="text-sm text-medium-gray">{dept.completionRate}% completed</span>
+                  <span className="text-sm font-medium text-deep-charcoal dark:text-pure-white">{categoryData.category}</span>
+                  <span className="text-sm text-medium-gray">{categoryData.completionRate}% completed</span>
                 </div>
                 <div className="w-full bg-light-gray dark:bg-soft-black rounded-full h-3">
                   <div 
                     className="h-3 rounded-full transition-all duration-300"
                     style={{ 
-                      width: `${dept.completionRate}%`,
-                      backgroundColor: dept.color
+                      width: `${categoryData.completionRate}%`,
+                      backgroundColor: categoryData.color
                     }}
                   />
                 </div>
                 <div className="flex justify-between text-xs text-medium-gray mt-1">
-                  <span>Total: {dept.total}</span>
-                  <span>Completed: {dept.completed}</span>
+                  <span>Total: {categoryData.total}</span>
+                  <span>Completed: {categoryData.completed}</span>
                 </div>
               </div>
             ))}
@@ -211,25 +214,25 @@ export function AnalyticsPage() {
       <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
         <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-6">Task Status Overview</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {departmentStats.map((dept) => (
-            <div key={dept.department} className="bg-off-white dark:bg-soft-black rounded-lg p-4">
-              <h4 className="font-medium text-deep-charcoal dark:text-pure-white mb-3">{dept.department}</h4>
+          {categoryStats.map((categoryData) => (
+            <div key={categoryData.category} className="bg-off-white dark:bg-soft-black rounded-lg p-4">
+              <h4 className="font-medium text-deep-charcoal dark:text-pure-white mb-3">{categoryData.category}</h4>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-medium-gray">Pending</span>
-                  <span className="text-sm font-medium text-yellow-600">{dept.pending}</span>
+                  <span className="text-sm font-medium text-yellow-600">{categoryData.pending}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-medium-gray">In Progress</span>
-                  <span className="text-sm font-medium text-blue-600">{dept.inProgress}</span>
+                  <span className="text-sm font-medium text-blue-600">{categoryData.inProgress}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-medium-gray">Completed</span>
-                  <span className="text-sm font-medium text-green-600">{dept.completed}</span>
+                  <span className="text-sm font-medium text-green-600">{categoryData.completed}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-medium-gray">Overdue</span>
-                  <span className="text-sm font-medium text-red-600">{dept.overdue}</span>
+                  <span className="text-sm font-medium text-red-600">{categoryData.overdue}</span>
                 </div>
               </div>
             </div>
