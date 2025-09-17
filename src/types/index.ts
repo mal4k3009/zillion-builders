@@ -18,7 +18,7 @@ export interface Task {
   category: string;
   assignedTo: number;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'pending' | 'in-progress' | 'completed';
+  status: 'pending' | 'in-progress' | 'completed' | 'paused';
   approvalStatus?: 'pending_approval' | 'approved' | 'rejected';
   dueDate: string;
   createdAt: string;
@@ -28,6 +28,8 @@ export interface Task {
   categoryId?: number;
   comments: TaskComment[];
   attachments: TaskAttachment[];
+  pausedAt?: string; // Track when task was paused
+  pausedBy?: number; // Track who paused the task
 }
 
 export interface TaskComment {

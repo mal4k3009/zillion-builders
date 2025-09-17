@@ -12,6 +12,7 @@ import {
   userCategoriesService
 } from '../firebase/services';
 import { taskMonitoringService } from '../services/taskMonitoringService';
+import { taskAutoStatusService } from '../services/taskAutoStatusService';
 
 interface AppState {
   currentUser: User | null;
@@ -589,8 +590,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initializeApp = async () => {
       await loadAllData();
+      
+      // Start the automatic task status service
+      taskAutoStatusService.start();
     };
     initializeApp();
+    
+    // Cleanup function to stop the service when component unmounts
+    return () => {
+      taskAutoStatusService.stop();
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore user session after users are loaded

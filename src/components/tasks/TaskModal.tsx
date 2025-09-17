@@ -19,6 +19,13 @@ const priorityLevels = [
   { id: 'urgent', name: 'Urgent', color: '#DC2626' }
 ];
 
+const taskStatuses = [
+  { id: 'pending', name: 'Pending', color: '#6B7280' },
+  { id: 'in-progress', name: 'In Progress', color: '#F59E0B' },
+  { id: 'completed', name: 'Completed', color: '#10B981' },
+  { id: 'paused', name: 'Paused', color: '#8B5CF6' }
+];
+
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
@@ -41,6 +48,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
     category: '', // Renamed from department
     assignedTo: '',
     priority: 'medium' as Task['priority'],
+    status: 'pending' as Task['status'],
     dueDate: ''
   });
 
@@ -76,6 +84,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
         category: task.category,
         assignedTo: task.assignedTo.toString(),
         priority: task.priority,
+        status: task.status,
         dueDate: new Date(task.dueDate).toISOString().slice(0, 16)
       });
     } else {
@@ -87,6 +96,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
         category: '',
         assignedTo: '',
         priority: 'medium',
+        status: 'pending',
         dueDate: ''
       });
     }
@@ -101,7 +111,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       category: formData.category || 'general',
       assignedTo: parseInt(formData.assignedTo),
       priority: formData.priority,
-      status: 'pending' as Task['status'],
+      status: formData.status,
       projectId: formData.projectId ? parseInt(formData.projectId) : undefined,
       categoryId: formData.userCategoryId ? parseInt(formData.userCategoryId) : undefined,
       dueDate: formData.dueDate,
@@ -111,7 +121,17 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       tags: [],
       subtasks: [],
       comments: [],
-      attachments: []
+      attachments: [],
+      // Add paused tracking fields if status is paused
+      ...(formData.status === 'paused' && {
+        pausedAt: new Date().toISOString(),
+        pausedBy: state.currentUser!.id
+      }),
+      // Clear paused fields if status is not paused
+      ...(formData.status !== 'paused' && {
+        pausedAt: undefined,
+        pausedBy: undefined
+      })
     };
 
     try {
@@ -174,7 +194,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       category: submitData.category || 'general',
       assignedTo: parseInt(submitData.assignedTo),
       priority: submitData.priority,
-      status: 'pending' as Task['status'],
+      status: submitData.status,
       projectId: submitData.projectId ? parseInt(submitData.projectId) : undefined,
       categoryId: submitData.userCategoryId ? parseInt(submitData.userCategoryId) : undefined,
       dueDate: submitData.dueDate,
@@ -225,7 +245,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
 
   if (!isOpen) return null;
 
-  const isOverdue = task ? new Date(task.dueDate) < new Date() && task.status !== 'completed' : false;
+  const isOverdue = task ? new Date(task.dueDate) < new Date() && task.status !== 'completed' && task.status !== 'paused' : false;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
@@ -270,6 +290,20 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   </label>
                   <span className="text-xs sm:text-sm text-gray-900 dark:text-white capitalize">
                     {task?.priority}
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Status
+                  </label>
+                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white capitalize flex items-center gap-2">
+                    {task?.status}
+                    {task?.status === 'paused' && task?.pausedAt && (
+                      <span className="text-xs text-purple-600 dark:text-purple-400">
+                        (Paused on {formatDate(task.pausedAt)})
+                      </span>
+                    )}
                   </span>
                 </div>
 
@@ -487,6 +521,27 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                     ))}
                   </select>
                 </div>
+
+                {/* Status field - only show in edit mode */}
+                {mode === 'edit' && (
+                  <div>
+                    <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Status
+                    </label>
+                    <select
+                      value={formData.status}
+                      onChange={(e) => setFormData({ ...formData, status: e.target.value as Task['status'] })}
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      required
+                    >
+                      {taskStatuses.map(status => (
+                        <option key={status.id} value={status.id}>
+                          {status.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

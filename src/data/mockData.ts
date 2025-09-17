@@ -327,5 +327,6 @@ export const priorityLevels = [
 export const taskStatuses = [
   { id: 'pending', name: 'Pending', color: '#6B7280' },
   { id: 'in-progress', name: 'In Progress', color: '#F59E0B' },
-  { id: 'completed', name: 'Completed', color: '#10B981' }
+  { id: 'completed', name: 'Completed', color: '#10B981' },
+  { id: 'paused', name: 'Paused', color: '#8B5CF6' }
 ];

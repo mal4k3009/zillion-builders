@@ -32,17 +32,31 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const project = state.projects.find(p => p.id === task.projectId);
   const userCategory = state.userCategories.find(c => c.id === task.categoryId);
   
-  const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed';
+  const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed' && task.status !== 'paused';
   const canEdit = state.currentUser?.role === 'master' || 
                   (state.currentUser?.role === 'sub');
 
   const handleStatusChange = async (newStatus: string) => {
     if (canEdit) {
       try {
-        await updateTaskInContext(task.id, { 
+        const updateData: Partial<Task> = { 
           status: newStatus as Task['status'], 
           updatedAt: new Date().toISOString() 
-        });
+        };
+
+        // If changing to paused, record when and who paused it
+        if (newStatus === 'paused') {
+          updateData.pausedAt = new Date().toISOString();
+          updateData.pausedBy = state.currentUser!.id;
+        }
+
+        // If changing from paused to another status, clear pause data
+        if (task.status === 'paused' && newStatus !== 'paused') {
+          updateData.pausedAt = undefined;
+          updateData.pausedBy = undefined;
+        }
+
+        await updateTaskInContext(task.id, updateData);
         
         // Add activity log for status change
         if (createActivity) {
@@ -155,6 +169,13 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
         }}>
           {priority?.name}
         </div>
+
+        {/* Paused Indicator */}
+        {task.status === 'paused' && (
+          <div className="px-2 py-1 rounded-full text-xs font-medium flex-shrink-0 bg-purple-100 dark:bg-purple-900/30 text-purple-500 dark:text-purple-300">
+            ⏸️ Paused
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-3 sm:mb-4">

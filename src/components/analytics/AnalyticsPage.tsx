@@ -1,38 +1,46 @@
-import React from 'react';
-import { BarChart3, TrendingUp, Users, CheckSquare, Calendar, Target } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, CheckSquare, Target } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { departments } from '../../data/mockData';
 
 export function AnalyticsPage() {
   const { state } = useApp();
-  // Compute category-wise task statistics
+  // Compute per-user task statistics
 
-  const getCategoryTaskStats = () => {
-    // Get unique categories from tasks
-    const categories = [...new Set(state.tasks.map(task => task.category))].filter(Boolean);
+  const getUserTaskStats = () => {
+    // Get all users who have tasks assigned
+    const usersWithTasks = state.users.filter(user => 
+      state.tasks.some(task => task.assignedTo === user.id)
+    );
     
-    const stats = categories.map(category => {
-      const categoryTasks = state.tasks.filter(task => task.category === category);
-      const completed = categoryTasks.filter(t => t.status === 'completed').length;
-      const inProgress = categoryTasks.filter(t => t.status === 'in-progress').length;
-      const pending = categoryTasks.filter(t => t.status === 'pending').length;
-      const overdue = categoryTasks.filter(t => 
-        new Date(t.dueDate) < new Date() && t.status !== 'completed'
+    const stats = usersWithTasks.map(user => {
+      const userTasks = state.tasks.filter(task => task.assignedTo === user.id);
+      const completed = userTasks.filter(t => t.status === 'completed').length;
+      const inProgress = userTasks.filter(t => t.status === 'in-progress').length;
+      const pending = userTasks.filter(t => t.status === 'pending').length;
+      const paused = userTasks.filter(t => t.status === 'paused').length;
+      const overdue = userTasks.filter(t => 
+        new Date(t.dueDate) < new Date() && t.status !== 'completed' && t.status !== 'paused'
       ).length;
 
+      // Generate a color based on user role or assign random colors
+      const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+      const userColor = colors[user.id % colors.length];
+
       return {
-        category: category,
-        color: '#3B82F6', // Default blue color
-        total: categoryTasks.length,
+        userId: user.id,
+        userName: user.name,
+        userRole: user.role,
+        color: userColor,
+        total: userTasks.length,
         completed,
         inProgress,
         pending,
+        paused,
         overdue,
-        completionRate: categoryTasks.length > 0 ? Math.round((completed / categoryTasks.length) * 100) : 0
+        completionRate: userTasks.length > 0 ? Math.round((completed / userTasks.length) * 100) : 0
       };
     });
 
-    return stats;
+    return stats.sort((a, b) => b.total - a.total); // Sort by total tasks descending
   };
 
   const getPriorityDistribution = () => {
@@ -76,7 +84,7 @@ export function AnalyticsPage() {
     };
   };
 
-  const categoryStats = getCategoryTaskStats();
+  const userStats = getUserTaskStats();
   const priorityDistribution = getPriorityDistribution();
   const productivityMetrics = getProductivityMetrics();
 
@@ -154,29 +162,34 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      {/* Department Performance */}
+      {/* User Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
-          <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-6">Category Performance</h3>
+          <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-6">User Performance</h3>
           <div className="space-y-6">
-            {categoryStats.map((categoryData) => (
-              <div key={categoryData.category}>
+            {userStats.map((userData) => (
+              <div key={userData.userId}>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium text-deep-charcoal dark:text-pure-white">{categoryData.category}</span>
-                  <span className="text-sm text-medium-gray">{categoryData.completionRate}% completed</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-deep-charcoal dark:text-pure-white">{userData.userName}</span>
+                    <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 capitalize">
+                      {userData.userRole}
+                    </span>
+                  </div>
+                  <span className="text-sm text-medium-gray">{userData.completionRate}% completed</span>
                 </div>
                 <div className="w-full bg-light-gray dark:bg-soft-black rounded-full h-3">
                   <div 
                     className="h-3 rounded-full transition-all duration-300"
                     style={{ 
-                      width: `${categoryData.completionRate}%`,
-                      backgroundColor: categoryData.color
+                      width: `${userData.completionRate}%`,
+                      backgroundColor: userData.color
                     }}
                   />
                 </div>
                 <div className="flex justify-between text-xs text-medium-gray mt-1">
-                  <span>Total: {categoryData.total}</span>
-                  <span>Completed: {categoryData.completed}</span>
+                  <span>Total: {userData.total}</span>
+                  <span>Completed: {userData.completed}</span>
                 </div>
               </div>
             ))}
@@ -212,27 +225,37 @@ export function AnalyticsPage() {
 
       {/* Task Status Overview */}
       <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
-        <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-6">Task Status Overview</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {categoryStats.map((categoryData) => (
-            <div key={categoryData.category} className="bg-off-white dark:bg-soft-black rounded-lg p-4">
-              <h4 className="font-medium text-deep-charcoal dark:text-pure-white mb-3">{categoryData.category}</h4>
+        <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-6">User Task Status Overview</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {userStats.map((userData) => (
+            <div key={userData.userId} className="bg-off-white dark:bg-soft-black rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: userData.color }}
+                />
+                <h4 className="font-medium text-deep-charcoal dark:text-pure-white truncate">{userData.userName}</h4>
+              </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-medium-gray">Pending</span>
-                  <span className="text-sm font-medium text-yellow-600">{categoryData.pending}</span>
+                  <span className="text-sm font-medium text-yellow-600">{userData.pending}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-medium-gray">In Progress</span>
-                  <span className="text-sm font-medium text-blue-600">{categoryData.inProgress}</span>
+                  <span className="text-sm font-medium text-blue-600">{userData.inProgress}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-medium-gray">Completed</span>
-                  <span className="text-sm font-medium text-green-600">{categoryData.completed}</span>
+                  <span className="text-sm font-medium text-green-600">{userData.completed}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-medium-gray">Paused</span>
+                  <span className="text-sm font-medium text-purple-600">{userData.paused}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-medium-gray">Overdue</span>
-                  <span className="text-sm font-medium text-red-600">{categoryData.overdue}</span>
+                  <span className="text-sm font-medium text-red-600">{userData.overdue}</span>
                 </div>
               </div>
             </div>
@@ -247,7 +270,7 @@ export function AnalyticsPage() {
           <TrendingUp className="w-5 h-5 text-brand-gold" />
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="text-center">
             <div className="w-20 h-20 bg-brand-gold/20 rounded-full flex items-center justify-center mx-auto mb-3">
               <span className="text-2xl font-bold text-brand-gold">
@@ -255,16 +278,16 @@ export function AnalyticsPage() {
               </span>
             </div>
             <h4 className="font-medium text-deep-charcoal dark:text-pure-white">Average Completion</h4>
-            <p className="text-sm text-medium-gray">Across all departments</p>
+            <p className="text-sm text-medium-gray">Across all users</p>
           </div>
 
           <div className="text-center">
             <div className="w-20 h-20 bg-accent-gold/20 rounded-full flex items-center justify-center mx-auto mb-3">
               <span className="text-2xl font-bold text-accent-gold">
-                {Math.round(state.tasks.length / departments.length)}
+                {userStats.length > 0 ? Math.round(state.tasks.length / userStats.length) : 0}
               </span>
             </div>
-            <h4 className="font-medium text-deep-charcoal dark:text-pure-white">Avg Tasks per Dept</h4>
+            <h4 className="font-medium text-deep-charcoal dark:text-pure-white">Avg Tasks per User</h4>
             <p className="text-sm text-medium-gray">Task distribution</p>
           </div>
 
@@ -276,6 +299,16 @@ export function AnalyticsPage() {
             </div>
             <h4 className="font-medium text-deep-charcoal dark:text-pure-white">High Priority</h4>
             <p className="text-sm text-medium-gray">Urgent & high priority tasks</p>
+          </div>
+
+          <div className="text-center">
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-3">
+              <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {userStats.length > 0 ? Math.round(userStats.reduce((sum, user) => sum + user.completionRate, 0) / userStats.length) : 0}%
+              </span>
+            </div>
+            <h4 className="font-medium text-deep-charcoal dark:text-pure-white">Avg User Performance</h4>
+            <p className="text-sm text-medium-gray">Average completion rate</p>
           </div>
         </div>
       </div>

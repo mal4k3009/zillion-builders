@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Grid, List, CheckSquare } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { TaskCard } from './TaskCard';
@@ -20,6 +20,8 @@ export function TasksPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [dueDateFilter, setDueDateFilter] = useState('');
+  const [userFilter, setUserFilter] = useState('');
+  const [projectFilter, setProjectFilter] = useState('');
 
   const filteredTasks = useMemo(() => {
     let tasks = state.tasks;
@@ -35,6 +37,14 @@ export function TasksPage() {
         task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()))
       );
+    }
+
+    if (userFilter) {
+      tasks = tasks.filter(task => task.assignedTo === parseInt(userFilter));
+    }
+
+    if (projectFilter) {
+      tasks = tasks.filter(task => task.projectId === parseInt(projectFilter));
     }
 
     if (departmentFilter) {
@@ -58,7 +68,7 @@ export function TasksPage() {
     }
 
     return tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [state.tasks, state.currentUser, searchTerm, departmentFilter, statusFilter, priorityFilter, dueDateFilter]);
+  }, [state.tasks, state.currentUser, searchTerm, userFilter, projectFilter, departmentFilter, statusFilter, priorityFilter, dueDateFilter]);
 
   const handleCreateTask = () => {
     setSelectedTask(null);
@@ -146,6 +156,10 @@ export function TasksPage() {
         onPriorityChange={setPriorityFilter}
         dueDateFilter={dueDateFilter}
         onDueDateChange={setDueDateFilter}
+        userFilter={userFilter}
+        onUserChange={setUserFilter}
+        projectFilter={projectFilter}
+        onProjectChange={setProjectFilter}
       />
 
       {filteredTasks.length === 0 ? (

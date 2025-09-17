@@ -157,6 +157,37 @@ export const tasksService = {
     });
   },
 
+  async getPausedTasksForReactivation(): Promise<Task[]> {
+    try {
+      const q = query(
+        collection(db, 'tasks'),
+        where('status', '==', 'paused'),
+        orderBy('dueDate', 'asc')
+      );
+      const querySnapshot = await getDocs(q);
+      const tasks = querySnapshot.docs.map(doc => ({ 
+        id: doc.id,
+        ...doc.data() 
+      } as Task));
+
+      // Filter tasks that should be reactivated (10 days before due date)
+      const currentTime = new Date();
+      const tenDaysInMs = 10 * 24 * 60 * 60 * 1000;
+
+      return tasks.filter(task => {
+        if (!task.dueDate) return false;
+        
+        const dueDate = new Date(task.dueDate);
+        const reactivationTime = new Date(dueDate.getTime() - tenDaysInMs);
+        
+        return currentTime >= reactivationTime;
+      });
+    } catch (error) {
+      console.error('Error getting paused tasks for reactivation:', error);
+      return [];
+    }
+  },
+
   async delete(id: string): Promise<void> {
     await deleteDoc(doc(db, 'tasks', id));
   }
