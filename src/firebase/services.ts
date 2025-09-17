@@ -190,6 +190,175 @@ export const tasksService = {
 
   async delete(id: string): Promise<void> {
     await deleteDoc(doc(db, 'tasks', id));
+  },
+
+  // Approval workflow methods
+  async assignToDirector(taskId: string, directorId: number): Promise<void> {
+    const docRef = doc(db, 'tasks', taskId);
+    await updateDoc(docRef, {
+      assignedDirector: directorId,
+      assignedTo: directorId,
+      status: 'assigned_to_director',
+      currentApprovalLevel: 'none',
+      updatedAt: serverTimestamp()
+    });
+  },
+
+  async assignToEmployee(taskId: string, employeeId: number): Promise<void> {
+    const docRef = doc(db, 'tasks', taskId);
+    await updateDoc(docRef, {
+      assignedEmployee: employeeId,
+      assignedTo: employeeId,
+      status: 'assigned_to_employee',
+      currentApprovalLevel: 'none',
+      updatedAt: serverTimestamp()
+    });
+  },
+
+  async markAsCompletedByEmployee(taskId: string): Promise<void> {
+    const docRef = doc(db, 'tasks', taskId);
+    const task = await this.getById(taskId);
+    
+    if (!task) throw new Error('Task not found');
+    
+    // Create approval entry for director
+    const approvalEntry = {
+      id: `${taskId}_director_${Date.now()}`,
+      taskId,
+      approverUserId: task.assignedDirector || 0,
+      approverRole: 'director' as const,
+      status: 'pending' as const,
+      createdAt: new Date().toISOString()
+    };
+
+    await updateDoc(docRef, {
+      status: 'pending_director_approval',
+      currentApprovalLevel: 'director',
+      approvalChain: [approvalEntry],
+      updatedAt: serverTimestamp()
+    });
+  },
+
+  async approveByDirector(taskId: string, approved: boolean, rejectionReason?: string): Promise<void> {
+    const docRef = doc(db, 'tasks', taskId);
+    const task = await this.getById(taskId);
+    
+    if (!task) throw new Error('Task not found');
+    
+    if (approved) {
+      // Create approval entry for admin
+      const adminApprovalEntry = {
+        id: `${taskId}_admin_${Date.now()}`,
+        taskId,
+        approverUserId: task.createdBy,
+        approverRole: 'admin' as const,
+        status: 'pending' as const,
+        createdAt: new Date().toISOString()
+      };
+
+      // Update director approval to approved
+      const updatedApprovalChain = task.approvalChain.map(approval => 
+        approval.approverRole === 'director' 
+          ? { ...approval, status: 'approved' as const, approvedAt: new Date().toISOString() }
+          : approval
+      );
+
+      await updateDoc(docRef, {
+        status: 'pending_admin_approval',
+        currentApprovalLevel: 'admin',
+        approvalChain: [...updatedApprovalChain, adminApprovalEntry],
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      // Reject and send back to employee
+      const updatedApprovalChain = task.approvalChain.map(approval => 
+        approval.approverRole === 'director' 
+          ? { 
+              ...approval, 
+              status: 'rejected' as const, 
+              approvedAt: new Date().toISOString(),
+              rejectionReason 
+            }
+          : approval
+      );
+
+      await updateDoc(docRef, {
+        status: 'rejected',
+        currentApprovalLevel: 'none',
+        rejectionReason,
+        approvalChain: updatedApprovalChain,
+        updatedAt: serverTimestamp()
+      });
+    }
+  },
+
+  async approveByAdmin(taskId: string, approved: boolean, rejectionReason?: string): Promise<void> {
+    const docRef = doc(db, 'tasks', taskId);
+    const task = await this.getById(taskId);
+    
+    if (!task) throw new Error('Task not found');
+    
+    if (approved) {
+      // Update admin approval to approved and mark task as completed
+      const updatedApprovalChain = task.approvalChain.map(approval => 
+        approval.approverRole === 'admin' 
+          ? { ...approval, status: 'approved' as const, approvedAt: new Date().toISOString() }
+          : approval
+      );
+
+      await updateDoc(docRef, {
+        status: 'completed',
+        currentApprovalLevel: 'none',
+        approvalChain: updatedApprovalChain,
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      // Reject and send back to employee
+      const updatedApprovalChain = task.approvalChain.map(approval => 
+        approval.approverRole === 'admin' 
+          ? { 
+              ...approval, 
+              status: 'rejected' as const, 
+              approvedAt: new Date().toISOString(),
+              rejectionReason 
+            }
+          : approval
+      );
+
+      await updateDoc(docRef, {
+        status: 'rejected',
+        currentApprovalLevel: 'none',
+        rejectionReason,
+        approvalChain: updatedApprovalChain,
+        updatedAt: serverTimestamp()
+      });
+    }
+  },
+
+  async getTasksAwaitingApproval(userId: number, role: 'director' | 'master'): Promise<Task[]> {
+    const approvalLevel = role === 'master' ? 'admin' : 'director';
+    const statusToQuery = role === 'master' ? 'pending_admin_approval' : 'pending_director_approval';
+    
+    const q = query(
+      collection(db, 'tasks'),
+      where('currentApprovalLevel', '==', approvalLevel),
+      where('status', '==', statusToQuery),
+      orderBy('updatedAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const tasks = querySnapshot.docs.map(doc => ({ 
+      id: doc.id,
+      ...doc.data() 
+    } as Task));
+
+    // Additional filtering based on assigned approver
+    return tasks.filter(task => {
+      const pendingApproval = task.approvalChain.find(
+        approval => approval.approverRole === approvalLevel && approval.status === 'pending'
+      );
+      return pendingApproval?.approverUserId === userId;
+    });
   }
 };
 
@@ -597,7 +766,7 @@ export const dashboardService = {
 
     const totalTasks = tasks.length;
     const pendingTasks = tasks.filter(task => task.status === 'pending').length;
-    const inProgressTasks = tasks.filter(task => task.status === 'in-progress').length;
+    const inProgressTasks = tasks.filter(task => task.status === 'in_progress').length;
     const completedTasks = tasks.filter(task => task.status === 'completed').length;
     const overdueTasks = tasks.filter(task => 
       new Date(task.dueDate) < new Date() && task.status !== 'completed'
@@ -643,7 +812,7 @@ export const referenceDataService = {
   async getTaskStatuses() {
     return [
       { id: 'pending', name: 'Pending', color: '#6B7280' },
-      { id: 'in-progress', name: 'In Progress', color: '#F59E0B' },
+      { id: 'in_progress', name: 'In Progress', color: '#F59E0B' },
       { id: 'completed', name: 'Completed', color: '#10B981' }
     ];
   }

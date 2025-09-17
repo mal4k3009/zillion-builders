@@ -7,11 +7,16 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Users
 } from 'lucide-react';
 import { Task } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { priorityLevels, taskStatuses } from '../../data/mockData';
+import { tasksService } from '../../firebase/services';
 
 interface TaskCardProps {
   task: Task;
@@ -34,7 +39,29 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   
   const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed' && task.status !== 'paused';
   const canEdit = state.currentUser?.role === 'master' || 
-                  (state.currentUser?.role === 'sub');
+                  (state.currentUser?.role === 'director') ||
+                  (state.currentUser?.role === 'employee');
+  
+  // Determine what actions the current user can take
+  const currentUserId = state.currentUser?.id || 0;
+  const currentUserRole = state.currentUser?.role;
+  const canAssignToDirector = currentUserRole === 'master' && task.status === 'pending';
+  const canAssignToEmployee = currentUserRole === 'director' && task.status === 'assigned_to_director';
+  const canMarkComplete = currentUserRole === 'employee' && task.status === 'assigned_to_employee' && task.assignedTo === currentUserId;
+  const canApproveAsDirector = currentUserRole === 'director' && task.status === 'pending_director_approval' && task.assignedDirector === currentUserId;
+  const canApproveAsAdmin = currentUserRole === 'master' && task.status === 'pending_admin_approval' && task.createdBy === currentUserId;
+  
+  // Get current pending approval info
+  const getPendingApprovalInfo = () => {
+    if (task.currentApprovalLevel === 'director') {
+      const director = state.users.find(u => u.id === task.assignedDirector);
+      return `Pending approval from Director: ${director?.name || 'Unknown'}`;
+    } else if (task.currentApprovalLevel === 'admin') {
+      const admin = state.users.find(u => u.id === task.createdBy);
+      return `Pending approval from Admin: ${admin?.name || 'Unknown'}`;
+    }
+    return null;
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     if (canEdit) {
@@ -71,6 +98,47 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
         console.error('Error updating task status:', error);
         // TODO: Show error message to user
       }
+    }
+  };
+
+  const handleAssignToDirector = async (directorId: number) => {
+    try {
+      await tasksService.assignToDirector(task.id, directorId);
+      // Refresh tasks in context
+      window.location.reload(); // Temporary solution, should use proper state update
+    } catch (error) {
+      console.error('Error assigning to director:', error);
+    }
+  };
+
+  const handleAssignToEmployee = async (employeeId: number) => {
+    try {
+      await tasksService.assignToEmployee(task.id, employeeId);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error assigning to employee:', error);
+    }
+  };
+
+  const handleMarkComplete = async () => {
+    try {
+      await tasksService.markAsCompletedByEmployee(task.id);
+      window.location.reload();
+    } catch (error) {
+      console.error('Error marking as complete:', error);
+    }
+  };
+
+  const handleApproval = async (approved: boolean, rejectionReason?: string) => {
+    try {
+      if (canApproveAsDirector) {
+        await tasksService.approveByDirector(task.id, approved, rejectionReason);
+      } else if (canApproveAsAdmin) {
+        await tasksService.approveByAdmin(task.id, approved, rejectionReason);
+      }
+      window.location.reload();
+    } catch (error) {
+      console.error('Error processing approval:', error);
     }
   };
 
@@ -192,6 +260,31 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
         </div>
       </div>
 
+      {/* Approval Status Information */}
+      {getPendingApprovalInfo() && (
+        <div className="mb-3 sm:mb-4 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border-l-4 border-yellow-400">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-yellow-600" />
+            <span className="text-xs sm:text-sm text-yellow-800 dark:text-yellow-200">
+              {getPendingApprovalInfo()}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Reason */}
+      {task.status === 'rejected' && task.rejectionReason && (
+        <div className="mb-3 sm:mb-4 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border-l-4 border-red-400">
+          <div className="flex items-center gap-2">
+            <XCircle className="w-4 h-4 text-red-600" />
+            <span className="text-xs sm:text-sm text-red-800 dark:text-red-200">
+              Rejected: {task.rejectionReason}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Assignment and Approval Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
         <div className="flex items-center gap-3 sm:gap-4">
           {task.comments.length > 0 && (
@@ -207,30 +300,116 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
               <span className="text-xs">{task.attachments.length}</span>
             </div>
           )}
+
+          {/* Assignment Information */}
+          {task.assignedDirector && task.assignedDirector !== task.assignedTo && (
+            <div className="flex items-center gap-1 text-blue-600">
+              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="text-xs">Director: {state.users.find(u => u.id === task.assignedDirector)?.name}</span>
+            </div>
+          )}
         </div>
 
-        {canEdit && (
-          <select
-            value={task.status}
-            onChange={(e) => handleStatusChange(e.target.value)}
-            className="text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-lg border border-light-gray dark:border-soft-black bg-pure-white dark:bg-dark-gray text-deep-charcoal dark:text-pure-white focus:outline-none focus:ring-2 focus:ring-brand-gold w-full sm:w-auto"
-          >
-            {taskStatuses.map(status => (
-              <option key={status.id} value={status.id}>
-                {status.name}
-              </option>
-            ))}
-          </select>
-        )}
-        
-        {!canEdit && (
-          <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium w-fit`} style={{ 
-            backgroundColor: `${status?.color}20`, 
-            color: status?.color 
-          }}>
-            {status?.name}
-          </div>
-        )}
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          {/* Mark as Complete Button for Employees */}
+          {canMarkComplete && (
+            <button
+              onClick={handleMarkComplete}
+              className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition-colors"
+            >
+              <CheckCircle className="w-3 h-3" />
+              Mark Complete
+            </button>
+          )}
+
+          {/* Approval Buttons for Directors and Admins */}
+          {(canApproveAsDirector || canApproveAsAdmin) && (
+            <>
+              <button
+                onClick={() => handleApproval(true)}
+                className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition-colors"
+              >
+                <CheckCircle className="w-3 h-3" />
+                Approve
+              </button>
+              <button
+                onClick={() => {
+                  const reason = prompt('Reason for rejection:');
+                  if (reason) handleApproval(false, reason);
+                }}
+                className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors"
+              >
+                <XCircle className="w-3 h-3" />
+                Reject
+              </button>
+            </>
+          )}
+
+          {/* Assignment Dropdowns for Master and Directors */}
+          {canAssignToDirector && (
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleAssignToDirector(parseInt(e.target.value));
+                }
+              }}
+              className="text-xs px-2 py-1 rounded-lg border border-light-gray bg-pure-white text-deep-charcoal"
+              defaultValue=""
+            >
+              <option value="">Assign to Director</option>
+              {state.users.filter(u => u.role === 'director').map(director => (
+                <option key={director.id} value={director.id}>
+                  {director.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {canAssignToEmployee && (
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleAssignToEmployee(parseInt(e.target.value));
+                }
+              }}
+              className="text-xs px-2 py-1 rounded-lg border border-light-gray bg-pure-white text-deep-charcoal"
+              defaultValue=""
+            >
+              <option value="">Assign to Employee</option>
+              {state.users.filter(u => u.role === 'employee' && u.reportsTo === currentUserId).map(employee => (
+                <option key={employee.id} value={employee.id}>
+                  {employee.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Regular Status Dropdown for Other Cases */}
+          {!canMarkComplete && !canApproveAsDirector && !canApproveAsAdmin && !canAssignToDirector && !canAssignToEmployee && canEdit && (
+            <select
+              value={task.status}
+              onChange={(e) => handleStatusChange(e.target.value)}
+              className="text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-lg border border-light-gray dark:border-soft-black bg-pure-white dark:bg-dark-gray text-deep-charcoal dark:text-pure-white focus:outline-none focus:ring-2 focus:ring-brand-gold w-full sm:w-auto"
+            >
+              {taskStatuses.map(status => (
+                <option key={status.id} value={status.id}>
+                  {status.name}
+                </option>
+              ))}
+            </select>
+          )}
+          
+          {/* Status Display for Non-editable Cases */}
+          {!canEdit && (
+            <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium w-fit`} style={{ 
+              backgroundColor: `${status?.color}20`, 
+              color: status?.color 
+            }}>
+              {status?.name}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

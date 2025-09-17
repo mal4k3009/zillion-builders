@@ -16,158 +16,125 @@ export const mockUsers: User[] = [
     id: 2,
     username: 'sales_admin',
     password: 'sales123',
-    role: 'sub',
+    role: 'director',
     designation: 'director',
     name: 'Sarah Johnson',
     email: 'sarah@company.com',
     status: 'active',
     lastLogin: '2024-12-15T10:30:00Z',
-    createdAt: '2024-01-15T00:00:00Z'
+    createdAt: '2024-01-15T00:00:00Z',
+    reportsTo: 1
   },
   {
     id: 3,
     username: 'pr_admin',
     password: 'pr123',
-    role: 'sub',
+    role: 'employee',
     designation: 'staff',
     name: 'Michael Chen',
     email: 'michael@company.com',
     status: 'active',
     lastLogin: '2024-12-15T09:45:00Z',
-    createdAt: '2024-01-20T00:00:00Z'
+    createdAt: '2024-01-20T00:00:00Z',
+    reportsTo: 2
   },
   {
     id: 4,
     username: 'marketing_admin',
     password: 'marketing123',
-    role: 'sub',
+    role: 'director',
     designation: 'chairman',
     name: 'Emily Rodriguez',
     email: 'emily@company.com',
     status: 'active',
     lastLogin: '2024-12-15T11:15:00Z',
-    createdAt: '2024-02-01T00:00:00Z'
+    createdAt: '2024-02-01T00:00:00Z',
+    reportsTo: 1
   },
   {
     id: 5,
-    username: 'ops_admin',
-    password: 'ops123',
-    role: 'sub',
-    designation: 'staff',
+    username: 'design_admin',
+    password: 'design123',
+    role: 'employee',
+    designation: 'designer',
     name: 'David Kumar',
     email: 'david@company.com',
     status: 'active',
     lastLogin: '2024-12-15T08:20:00Z',
-    createdAt: '2024-02-10T00:00:00Z'
+    createdAt: '2024-02-15T00:00:00Z',
+    reportsTo: 4
   }
 ];
 
 export const mockTasks: Task[] = [
   {
-    id: 1,
-    title: 'Prepare Q4 Sales Presentation',
-    description: 'Create comprehensive presentation covering Q4 performance, targets, and strategic initiatives for the upcoming board meeting.',
-    department: 'sales',
+    id: '1',
+    title: 'Design new landing page',
+    description: 'Create a modern, responsive landing page for the company website',
+    category: 'Design',
     assignedTo: 2,
     priority: 'high',
-    status: 'in-progress',
-    dueDate: '2024-12-20T17:00:00Z',
-    createdAt: '2024-12-10T09:00:00Z',
-    updatedAt: '2024-12-14T15:30:00Z',
+    status: 'assigned_to_director',
+    dueDate: '2024-12-25T00:00:00Z',
+    createdAt: '2024-12-10T00:00:00Z',
+    updatedAt: '2024-12-15T00:00:00Z',
     createdBy: 1,
-    comments: [
-      {
-        id: 1,
-        taskId: 1,
-        userId: 2,
-        content: 'Working on the financial analysis section. Will have the first draft ready by tomorrow.',
-        createdAt: '2024-12-14T15:30:00Z'
-      }
-    ],
-    attachments: []
-  },
-  {
-    id: 2,
-    title: 'Social Media Campaign Launch',
-    description: 'Execute the holiday season social media campaign across all platforms with coordinated content and engagement strategies.',
-    department: 'marketing',
-    assignedTo: 4,
-    priority: 'urgent',
-    status: 'pending',
-    dueDate: '2024-12-18T12:00:00Z',
-    createdAt: '2024-12-12T10:30:00Z',
-    updatedAt: '2024-12-12T10:30:00Z',
-    createdBy: 1,
+    projectId: 1,
+    categoryId: 1,
     comments: [],
-    attachments: []
+    attachments: [],
+    assignedDirector: 2,
+    approvalChain: [],
+    currentApprovalLevel: 'none'
   },
   {
-    id: 3,
-    title: 'Press Release Draft',
-    description: 'Draft press release for the new product launch announcement. Include key features, market positioning, and executive quotes.',
-    department: 'pr',
+    id: '2',
+    title: 'Update marketing materials',
+    description: 'Refresh all marketing materials with new branding',
+    category: 'Marketing',
     assignedTo: 3,
     priority: 'medium',
-    status: 'completed',
-    dueDate: '2024-12-16T17:00:00Z',
-    createdAt: '2024-12-08T14:00:00Z',
-    updatedAt: '2024-12-15T16:45:00Z',
+    status: 'assigned_to_employee',
+    dueDate: '2024-12-30T00:00:00Z',
+    createdAt: '2024-12-12T00:00:00Z',
+    updatedAt: '2024-12-15T00:00:00Z',
     createdBy: 1,
-    comments: [
-      {
-        id: 2,
-        taskId: 3,
-        userId: 3,
-        content: 'First draft completed and sent for review. Incorporated feedback from product team.',
-        createdAt: '2024-12-15T16:45:00Z'
-      }
-    ],
-    attachments: []
-  },
-  {
-    id: 4,
-    title: 'Vendor Contract Review',
-    description: 'Review and analyze vendor contracts for cost optimization opportunities. Prepare recommendations for contract renewals.',
-    department: 'operations',
-    assignedTo: 5,
-    priority: 'medium',
-    status: 'in-progress',
-    dueDate: '2024-12-22T17:00:00Z',
-    createdAt: '2024-12-11T11:00:00Z',
-    updatedAt: '2024-12-13T14:20:00Z',
-    createdBy: 1,
+    projectId: 2,
+    categoryId: 2,
     comments: [],
-    attachments: []
+    attachments: [],
+    assignedDirector: 2,
+    assignedEmployee: 3,
+    approvalChain: [],
+    currentApprovalLevel: 'none'
   },
   {
-    id: 5,
-    title: 'Customer Follow-up Campaign',
-    description: 'Reach out to key customers for feedback and potential upselling opportunities. Focus on accounts with high engagement.',
-    department: 'sales',
-    assignedTo: 2,
-    priority: 'low',
-    status: 'pending',
-    dueDate: '2024-12-25T17:00:00Z',
-    createdAt: '2024-12-13T09:15:00Z',
-    updatedAt: '2024-12-13T09:15:00Z',
-    createdBy: 1,
-    comments: [],
-    attachments: []
-  },
-  {
-    id: 6,
-    title: 'Market Research Analysis',
-    description: 'Conduct comprehensive market research for the new product vertical. Analyze competitor strategies and market opportunities.',
-    department: 'marketing',
-    assignedTo: 4,
+    id: '3',
+    title: 'Database optimization',
+    description: 'Optimize database queries for better performance',
+    category: 'Development',
+    assignedTo: 3,
     priority: 'high',
-    status: 'pending',
-    dueDate: '2024-12-19T17:00:00Z',
-    createdAt: '2024-12-14T08:45:00Z',
-    updatedAt: '2024-12-14T08:45:00Z',
+    status: 'pending_director_approval',
+    dueDate: '2024-12-20T00:00:00Z',
+    createdAt: '2024-12-08T00:00:00Z',
+    updatedAt: '2024-12-15T00:00:00Z',
     createdBy: 1,
+    projectId: 3,
+    categoryId: 3,
     comments: [],
-    attachments: []
+    attachments: [],
+    assignedDirector: 2,
+    assignedEmployee: 3,
+    approvalChain: [{
+      id: '3_director_1734234000000',
+      taskId: '3',
+      approverUserId: 2,
+      approverRole: 'director',
+      status: 'pending',
+      createdAt: '2024-12-15T10:00:00Z'
+    }],
+    currentApprovalLevel: 'director'
   }
 ];
 
@@ -326,7 +293,13 @@ export const priorityLevels = [
 
 export const taskStatuses = [
   { id: 'pending', name: 'Pending', color: '#6B7280' },
-  { id: 'in-progress', name: 'In Progress', color: '#F59E0B' },
+  { id: 'assigned_to_director', name: 'Assigned to Director', color: '#3B82F6' },
+  { id: 'assigned_to_employee', name: 'Assigned to Employee', color: '#06B6D4' },
+  { id: 'in_progress', name: 'In Progress', color: '#F59E0B' },
+  { id: 'completed_by_employee', name: 'Completed by Employee', color: '#84CC16' },
+  { id: 'pending_director_approval', name: 'Pending Director Approval', color: '#F97316' },
+  { id: 'pending_admin_approval', name: 'Pending Admin Approval', color: '#EF4444' },
   { id: 'completed', name: 'Completed', color: '#10B981' },
+  { id: 'rejected', name: 'Rejected', color: '#DC2626' },
   { id: 'paused', name: 'Paused', color: '#8B5CF6' }
 ];

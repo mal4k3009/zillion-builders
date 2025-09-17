@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Calendar, User } from 'lucide-react';
 import { Task, Project, UserCategory } from '../../types';
 import { useApp } from '../../context/AppContext';
-import { projectsService, userCategoriesService } from '../../firebase/services';
+import { projectsService, userCategoriesService, tasksService } from '../../firebase/services';
+import { priorityLevels, taskStatuses } from '../../data/mockData';
 // import { notificationService } from '../../services/notificationService'; // DISABLED - n8n will handle notifications
 
 interface TaskModalProps {
@@ -11,20 +12,6 @@ interface TaskModalProps {
   task?: Task | null;
   mode: 'create' | 'edit' | 'view';
 }
-
-const priorityLevels = [
-  { id: 'low', name: 'Low', color: '#6B7280' },
-  { id: 'medium', name: 'Medium', color: '#F59E0B' },
-  { id: 'high', name: 'High', color: '#EF4444' },
-  { id: 'urgent', name: 'Urgent', color: '#DC2626' }
-];
-
-const taskStatuses = [
-  { id: 'pending', name: 'Pending', color: '#6B7280' },
-  { id: 'in-progress', name: 'In Progress', color: '#F59E0B' },
-  { id: 'completed', name: 'Completed', color: '#10B981' },
-  { id: 'paused', name: 'Paused', color: '#8B5CF6' }
-];
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString('en-US', {
@@ -37,7 +24,7 @@ const formatDate = (dateString: string) => {
 };
 
 export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
-  const { state, createTask, updateTask, createNotification, createActivity } = useApp();
+  const { state, createNotification, createActivity } = useApp();
   const [userCategories, setUserCategories] = useState<UserCategory[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [formData, setFormData] = useState({
@@ -122,6 +109,9 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       subtasks: [],
       comments: [],
       attachments: [],
+      // Add approval workflow fields
+      approvalChain: [],
+      currentApprovalLevel: 'none' as const,
       // Add paused tracking fields if status is paused
       ...(formData.status === 'paused' && {
         pausedAt: new Date().toISOString(),
@@ -136,7 +126,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
 
     try {
       if (mode === 'create') {
-        await createTask(taskData);
+        await tasksService.create(taskData);
         
         // Find the assigned user
         const assignedUser = state.users.find(u => u.id === parseInt(formData.assignedTo));
@@ -171,7 +161,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
           timestamp: new Date().toISOString()
         });
       } else if (mode === 'edit') {
-        await updateTask(task!.id, taskData);
+        await tasksService.update(task!.id, taskData);
         
         // Add activity
         await createActivity({
@@ -205,11 +195,14 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       tags: [],
       subtasks: [],
       comments: [],
-      attachments: []
+      attachments: [],
+      // Add approval workflow fields
+      approvalChain: [],
+      currentApprovalLevel: 'none' as const
     };
 
     try {
-      await createTask(taskData);
+      await tasksService.create(taskData);
       
       // Add notification for master admin about approval request
       const masterUsers = state.users.filter(u => u.role === 'master');
@@ -240,7 +233,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   };
 
   const departmentUsers = state.users.filter(u => 
-    u.role === 'sub'
+    u.role === 'employee'
   );
 
   if (!isOpen) return null;
@@ -368,7 +361,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                     <button
                       onClick={async () => {
                         try {
-                          await updateTask(task.id, { 
+                          await tasksService.update(task.id, { 
                             approvalStatus: 'approved',
                             updatedAt: new Date().toISOString()
                           });
@@ -392,7 +385,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                     <button
                       onClick={async () => {
                         try {
-                          await updateTask(task.id, { 
+                          await tasksService.update(task.id, { 
                             approvalStatus: 'rejected',
                             updatedAt: new Date().toISOString()
                           });

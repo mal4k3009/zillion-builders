@@ -2,12 +2,24 @@ export interface User {
   id: number;
   username: string;
   password: string;
-  role: 'master' | 'sub';
+  role: 'master' | 'director' | 'employee';
   designation: string;
   name: string;
   email: string;
   status: 'active' | 'inactive';
   lastLogin?: string;
+  createdAt: string;
+  reportsTo?: number; // ID of the person they report to (employee reports to director)
+}
+
+export interface TaskApproval {
+  id: string;
+  taskId: string;
+  approverUserId: number;
+  approverRole: 'director' | 'admin';
+  status: 'pending' | 'approved' | 'rejected';
+  approvedAt?: string;
+  rejectionReason?: string;
   createdAt: string;
 }
 
@@ -18,7 +30,7 @@ export interface Task {
   category: string;
   assignedTo: number;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'pending' | 'in-progress' | 'completed' | 'paused';
+  status: 'pending' | 'assigned_to_director' | 'assigned_to_employee' | 'in_progress' | 'completed_by_employee' | 'pending_director_approval' | 'pending_admin_approval' | 'completed' | 'paused' | 'rejected';
   approvalStatus?: 'pending_approval' | 'approved' | 'rejected';
   dueDate: string;
   createdAt: string;
@@ -30,6 +42,12 @@ export interface Task {
   attachments: TaskAttachment[];
   pausedAt?: string; // Track when task was paused
   pausedBy?: number; // Track who paused the task
+  // New approval workflow fields
+  assignedDirector?: number; // Director assigned by master admin
+  assignedEmployee?: number; // Employee assigned by director
+  approvalChain: TaskApproval[]; // Chain of approvals
+  currentApprovalLevel: 'none' | 'director' | 'admin'; // Who needs to approve next
+  rejectionReason?: string; // Reason for rejection
 }
 
 export interface TaskComment {
@@ -67,7 +85,7 @@ export interface Notification {
   userId: number;
   title: string;
   message: string;
-  type: 'task_assigned' | 'task_updated' | 'message_received' | 'system' | 'task_completed' | 'approval_required';
+  type: 'task_assigned' | 'task_updated' | 'message_received' | 'system' | 'task_completed' | 'approval_required' | 'approval_approved' | 'approval_rejected' | 'task_assigned_to_director' | 'task_assigned_to_employee';
   isRead: boolean;
   createdAt: string;
   actionUrl?: string;
@@ -100,7 +118,7 @@ export interface DashboardStats {
 
 export interface Activity {
   id: number;
-  type: 'task_created' | 'task_updated' | 'user_created' | 'user_updated' | 'message_sent';
+  type: 'task_created' | 'task_updated' | 'user_created' | 'user_updated' | 'message_sent' | 'task_approved' | 'task_rejected' | 'approval_requested';
   description: string;
   userId: number;
   timestamp: string;

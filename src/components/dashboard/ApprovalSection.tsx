@@ -1,55 +1,101 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ClipboardCheck, CheckCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ApprovalTaskCard } from './ApprovalTaskCard';
 import { TaskModal } from '../tasks/TaskModal';
 import { Task } from '../../types';
+import { tasksService } from '../../firebase/services';
 
 export function ApprovalSection() {
-  const { state, updateTask, createActivity } = useApp();
+  const { state, createActivity } = useApp();
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [pendingApprovalTasks, setPendingApprovalTasks] = useState<Task[]>([]);
 
-  // Only show for master admin
-  if (state.currentUser?.role !== 'master') {
+  const currentUser = state.currentUser;
+  const currentUserRole = currentUser?.role;
+
+  useEffect(() => {
+    const fetchPendingApprovals = async () => {
+      if (!currentUser || (currentUserRole !== 'master' && currentUserRole !== 'director')) {
+        return;
+      }
+      
+      try {
+        const tasks = await tasksService.getTasksAwaitingApproval(
+          currentUser.id, 
+          currentUserRole as 'director' | 'master'
+        );
+        setPendingApprovalTasks(tasks);
+      } catch (error) {
+        console.error('Error fetching pending approvals:', error);
+      }
+    };
+
+    fetchPendingApprovals();
+  }, [currentUser, currentUserRole]);
+
+  // Only show for directors and master admins
+  if (currentUserRole !== 'master' && currentUserRole !== 'director') {
     return null;
   }
 
-  const pendingApprovalTasks = state.tasks.filter(t => t.approvalStatus === 'pending_approval');
-
   const handleApprove = async (taskId: string) => {
     try {
-      await updateTask(taskId, { 
-        approvalStatus: 'approved',
-        updatedAt: new Date().toISOString()
-      });
+      if (currentUserRole === 'director') {
+        await tasksService.approveByDirector(taskId, true);
+      } else if (currentUserRole === 'master') {
+        await tasksService.approveByAdmin(taskId, true);
+      }
       
       // Add activity log
-      await createActivity({
-        type: 'task_updated',
-        description: `Approved task with ID ${taskId}`,
-        userId: state.currentUser!.id,
-        timestamp: new Date().toISOString()
-      });
+      if (createActivity) {
+        await createActivity({
+          type: 'task_approved',
+          description: `Approved task completion for task ID ${taskId}`,
+          userId: currentUser!.id,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Refresh the pending approvals list
+      const tasks = await tasksService.getTasksAwaitingApproval(
+        currentUser!.id, 
+        currentUserRole as 'director' | 'master'
+      );
+      setPendingApprovalTasks(tasks);
     } catch (error) {
       console.error('Error approving task:', error);
     }
   };
 
   const handleReject = async (taskId: string) => {
+    const rejectionReason = prompt('Please provide a reason for rejection:');
+    if (!rejectionReason) return;
+
     try {
-      await updateTask(taskId, { 
-        approvalStatus: 'rejected',
-        updatedAt: new Date().toISOString()
-      });
+      if (currentUserRole === 'director') {
+        await tasksService.approveByDirector(taskId, false, rejectionReason);
+      } else if (currentUserRole === 'master') {
+        await tasksService.approveByAdmin(taskId, false, rejectionReason);
+      }
       
       // Add activity log
-      await createActivity({
-        type: 'task_updated',
-        description: `Rejected task with ID ${taskId}`,
-        userId: state.currentUser!.id,
-        timestamp: new Date().toISOString()
-      });
+      if (createActivity) {
+        await createActivity({
+          type: 'task_rejected',
+          description: `Rejected task completion for task ID ${taskId}: ${rejectionReason}`,
+          userId: currentUser!.id,
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Refresh the pending approvals list
+      const tasks = await tasksService.getTasksAwaitingApproval(
+        currentUser!.id, 
+        currentUserRole as 'director' | 'master'
+      );
+      setPendingApprovalTasks(tasks);
     } catch (error) {
       console.error('Error rejecting task:', error);
     }
@@ -68,13 +114,13 @@ export function ApprovalSection() {
             <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
           </div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Task Approvals
+            {currentUserRole === 'master' ? 'Admin Approvals' : 'Director Approvals'}
           </h2>
         </div>
         <div className="text-center py-8">
           <ClipboardCheck className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
           <p className="text-gray-500 dark:text-gray-400">
-            No tasks pending approval at the moment
+            No tasks pending {currentUserRole === 'master' ? 'admin' : 'director'} approval at the moment
           </p>
         </div>
       </div>
@@ -89,7 +135,7 @@ export function ApprovalSection() {
             <ClipboardCheck className="w-5 h-5 text-orange-600 dark:text-orange-400" />
           </div>
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Task Approvals ({pendingApprovalTasks.length})
+            {currentUserRole === 'master' ? 'Admin Approvals' : 'Director Approvals'} ({pendingApprovalTasks.length})
           </h2>
         </div>
         
