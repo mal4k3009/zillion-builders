@@ -192,6 +192,18 @@ export const tasksService = {
     await deleteDoc(doc(db, 'tasks', id));
   },
 
+  // Real-time subscription
+  onTasksSnapshot(callback: (tasks: Task[]) => void): () => void {
+    const q = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const tasks = snapshot.docs.map(doc => ({ 
+        id: doc.id,
+        ...doc.data() 
+      } as Task));
+      callback(tasks);
+    });
+  },
+
   // Approval workflow methods
   async assignToDirector(taskId: string, directorId: number): Promise<void> {
     const docRef = doc(db, 'tasks', taskId);

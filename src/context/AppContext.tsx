@@ -259,6 +259,8 @@ interface AppContextType {
   markConversationAsRead: (userId1: number, userId2: number) => Promise<void>;
   // Real-time notification functions
   subscribeToUserNotifications: (userId: number) => () => void;
+  // Real-time task functions
+  subscribeToTasks: () => () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -271,9 +273,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
-      const [users, tasks, chatMessages, notifications, whatsappMessages, activities, projects, userCategories] = await Promise.all([
+      const [users, chatMessages, notifications, whatsappMessages, activities, projects, userCategories] = await Promise.all([
         usersService.getAll(),
-        tasksService.getAll(),
         chatService.getAll(),
         notificationsService.getAll(),
         whatsappService.getAll(),
@@ -283,7 +284,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]);
 
       dispatch({ type: 'SET_USERS', payload: users });
-      dispatch({ type: 'SET_TASKS', payload: tasks });
+      // Tasks will be loaded via real-time subscription
+      subscribeToTasks();
       dispatch({ type: 'SET_CHAT_MESSAGES', payload: chatMessages });
       dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
       dispatch({ type: 'SET_WHATSAPP_MESSAGES', payload: whatsappMessages });
@@ -528,6 +530,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       userId,
       (notifications) => {
         dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
+      }
+    );
+    return unsubscribe;
+  };
+
+  // Real-time task subscription
+  const subscribeToTasks = () => {
+    const unsubscribe = tasksService.onTasksSnapshot(
+      (tasks) => {
+        dispatch({ type: 'SET_TASKS', payload: tasks });
       }
     );
     return unsubscribe;
@@ -846,7 +858,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     subscribeToUserConversations,
     subscribeToConversation,
     markConversationAsRead,
-    subscribeToUserNotifications
+    subscribeToUserNotifications,
+    subscribeToTasks
   };
 
   return (

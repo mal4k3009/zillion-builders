@@ -232,9 +232,36 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
     }
   };
 
-  const departmentUsers = state.users.filter(u => 
-    u.role === 'employee'
-  );
+  // Filter users based on role hierarchy for task assignment
+  const getAssignableUsers = () => {
+    if (!state.currentUser) return [];
+    
+    // TEMPORARY: Show all users for debugging
+    console.log('Current user role:', state.currentUser.role);
+    return state.users;
+    
+    /* Original filtering logic:
+    if (state.currentUser.role === 'master') {
+      // Master admin can assign to directors
+      return state.users.filter(u => u.role === 'director');
+    } else if (state.currentUser.role === 'director') {
+      // Directors can assign to employees under them
+      return state.users.filter(u => u.role === 'employee' && u.reportsTo === state.currentUser!.id);
+    } else {
+      // Employees cannot assign tasks to others
+      return [];
+    }
+    */
+  };
+
+  const departmentUsers = getAssignableUsers();
+  
+  // Debug: Log to check what's happening
+  console.log('TaskModal Debug:');
+  console.log('- Current user:', state.currentUser);
+  console.log('- All users count:', state.users.length);
+  console.log('- All users:', state.users);
+  console.log('- Assignable users:', departmentUsers);
 
   if (!isOpen) return null;
 
