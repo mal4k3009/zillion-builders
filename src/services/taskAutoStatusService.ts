@@ -67,12 +67,13 @@ export class TaskAutoStatusService {
       // Reactivate tasks
       for (const task of tasksToReactivate) {
         try {
-          await tasksService.update(task.id, {
+          // Create update object without undefined fields
+          const updateData: Partial<Task> = {
             status: 'pending',
-            updatedAt: new Date().toISOString(),
-            pausedAt: undefined,
-            pausedBy: undefined
-          });
+            updatedAt: new Date().toISOString()
+          };
+
+          await tasksService.update(task.id, updateData);
 
           console.log(`✅ Reactivated task: "${task.title}" (due: ${task.dueDate})`);
 
@@ -114,12 +115,13 @@ export class TaskAutoStatusService {
       const daysDifference = Math.ceil((dueDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
 
       if (daysDifference <= this.DAYS_BEFORE_DUE) {
-        await tasksService.update(task.id, {
+        // Create update object without undefined fields
+        const updateData: Partial<Task> = {
           status: 'pending',
-          updatedAt: new Date().toISOString(),
-          pausedAt: undefined,
-          pausedBy: undefined
-        });
+          updatedAt: new Date().toISOString()
+        };
+
+        await tasksService.update(task.id, updateData);
 
         console.log(`✅ Manually reactivated task: "${task.title}"`);
         return true;

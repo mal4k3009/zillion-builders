@@ -47,7 +47,9 @@ export function LoginPage() {
       director2: { email: 'ankit_director@zillion-builders-internal.com', password: 'director123' },
       // Staff members - from migrated users
       staff1: { email: 'suresh_staff@zillion-builders-internal.com', password: 'staff123' },
-      staff2: { email: 'meera_staff@zillion-builders-internal.com', password: 'staff123' }
+      staff2: { email: 'meera_staff@zillion-builders-internal.com', password: 'staff123' },
+      // Malak - The Best Developer
+      malak: { email: 'malak@zilliongroup.com', password: 'malak123' }
     };
 
     const creds = credentials[userType];
@@ -168,6 +170,12 @@ export function LoginPage() {
                 className="px-2 sm:px-3 py-1.5 sm:py-2 bg-green-600/20 hover:bg-green-600/30 text-green-200 text-xs rounded-lg transition-colors"
               >
                 Staff 2
+              </button>
+              <button
+                onClick={() => quickLogin('malak')}
+                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 text-xs rounded-lg transition-colors col-span-2"
+              >
+                🚀 Malak - The Best Developer
               </button>
             </div>
           </div>

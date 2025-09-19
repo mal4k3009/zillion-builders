@@ -16,6 +16,17 @@ import {
 import { db } from './config';
 import { User, Task, ChatMessage, Notification, WhatsAppMessage, Activity, Project, Category, UserCategory } from '../types';
 
+// Utility function to remove undefined values from objects
+const cleanUndefinedFields = <T extends Record<string, unknown>>(obj: T): Partial<T> => {
+  const cleaned: Partial<T> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      (cleaned as Record<string, unknown>)[key] = value;
+    }
+  }
+  return cleaned;
+};
+
 // Users Service
 export const usersService = {
   async getAll(): Promise<User[]> {
@@ -141,8 +152,9 @@ export const tasksService = {
   },
 
   async create(taskData: Omit<Task, 'id'>): Promise<string> {
+    const cleanedData = cleanUndefinedFields(taskData);
     const docRef = await addDoc(collection(db, 'tasks'), {
-      ...taskData,
+      ...cleanedData,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -151,8 +163,9 @@ export const tasksService = {
 
   async update(id: string, taskData: Partial<Task>): Promise<void> {
     const docRef = doc(db, 'tasks', id);
+    const cleanedData = cleanUndefinedFields(taskData);
     await updateDoc(docRef, {
-      ...taskData,
+      ...cleanedData,
       updatedAt: serverTimestamp()
     });
   },

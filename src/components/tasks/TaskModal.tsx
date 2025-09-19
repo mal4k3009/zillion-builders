@@ -92,15 +92,13 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const taskData = {
+    // Build base task data without undefined fields
+    const baseTaskData = {
       title: formData.title,
-      description: formData.description || undefined,
       category: formData.category || 'general',
       assignedTo: parseInt(formData.assignedTo),
       priority: formData.priority,
       status: formData.status,
-      projectId: formData.projectId ? parseInt(formData.projectId) : undefined,
-      categoryId: formData.userCategoryId ? parseInt(formData.userCategoryId) : undefined,
       dueDate: formData.dueDate,
       createdBy: 1, // TODO: Get from auth
       createdAt: new Date().toISOString(),
@@ -109,20 +107,30 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       subtasks: [],
       comments: [],
       attachments: [],
-      // Add approval workflow fields
       approvalChain: [],
       currentApprovalLevel: 'none' as const,
-      // Add paused tracking fields if status is paused
-      ...(formData.status === 'paused' && {
-        pausedAt: new Date().toISOString(),
-        pausedBy: state.currentUser!.id
-      }),
-      // Clear paused fields if status is not paused
-      ...(formData.status !== 'paused' && {
-        pausedAt: undefined,
-        pausedBy: undefined
-      })
     };
+
+    // Add optional fields only if they have values
+    const taskData: Partial<Task> & typeof baseTaskData = { ...baseTaskData };
+    
+    if (formData.description) {
+      taskData.description = formData.description;
+    }
+    
+    if (formData.projectId) {
+      taskData.projectId = parseInt(formData.projectId);
+    }
+    
+    if (formData.userCategoryId) {
+      taskData.categoryId = parseInt(formData.userCategoryId);
+    }
+    
+    // Add paused tracking fields only if status is paused
+    if (formData.status === 'paused') {
+      taskData.pausedAt = new Date().toISOString();
+      taskData.pausedBy = state.currentUser!.id;
+    }
 
     try {
       if (mode === 'create') {
@@ -178,15 +186,13 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   };
 
   const handleSubmitWithApproval = async (submitData: typeof formData & { approvalStatus: 'pending_approval' }) => {
-    const taskData = {
+    // Build base task data without undefined fields
+    const baseTaskData = {
       title: submitData.title,
-      description: submitData.description || undefined,
       category: submitData.category || 'general',
       assignedTo: parseInt(submitData.assignedTo),
       priority: submitData.priority,
       status: submitData.status,
-      projectId: submitData.projectId ? parseInt(submitData.projectId) : undefined,
-      categoryId: submitData.userCategoryId ? parseInt(submitData.userCategoryId) : undefined,
       dueDate: submitData.dueDate,
       createdBy: 1, // TODO: Get from auth
       createdAt: new Date().toISOString(),
@@ -196,10 +202,30 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       subtasks: [],
       comments: [],
       attachments: [],
-      // Add approval workflow fields
       approvalChain: [],
       currentApprovalLevel: 'none' as const
     };
+
+    // Add optional fields only if they have values
+    const taskData: Partial<Task> & typeof baseTaskData = { ...baseTaskData };
+    
+    if (submitData.description) {
+      taskData.description = submitData.description;
+    }
+    
+    if (submitData.projectId) {
+      taskData.projectId = parseInt(submitData.projectId);
+    }
+    
+    if (submitData.userCategoryId) {
+      taskData.categoryId = parseInt(submitData.userCategoryId);
+    }
+    
+    // Add paused tracking fields only if status is paused
+    if (submitData.status === 'paused') {
+      taskData.pausedAt = new Date().toISOString();
+      taskData.pausedBy = state.currentUser!.id;
+    }
 
     try {
       await tasksService.create(taskData);
