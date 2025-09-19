@@ -49,25 +49,27 @@ function AppContent() {
   }
 
   const renderPage = () => {
+    const isManagement = ['master', 'director', 'chairman'].includes(state.currentUser?.role || '');
+    
     switch (currentPage) {
       case 'dashboard':
         return <DashboardPage />;
       case 'tasks':
         return <TasksPage />;
       case 'users':
-        return state.currentUser?.role === 'master' ? <UsersPage /> : <DashboardPage />;
+        return isManagement ? <UsersPage /> : <DashboardPage />;
       case 'projects':
-        return state.currentUser?.role === 'master' ? <ProjectsPage /> : <DashboardPage />;
+        return isManagement ? <ProjectsPage /> : <DashboardPage />;
       case 'categories':
-        return state.currentUser?.role === 'master' ? <CategoriesPage /> : <DashboardPage />;
+        return isManagement ? <CategoriesPage /> : <DashboardPage />;
       case 'chat':
         return <ChatPage />;
       case 'notifications':
         return <NotificationsPage />;
       case 'analytics':
-        return state.currentUser?.role === 'master' ? <AnalyticsPage /> : <DashboardPage />;
+        return isManagement ? <AnalyticsPage /> : <DashboardPage />;
       case 'whatsapp':
-        return state.currentUser?.role === 'master' ? <WhatsAppPage /> : <DashboardPage />;
+        return isManagement ? <WhatsAppPage /> : <DashboardPage />;
       case 'calendar':
         return <CalendarPage />;
       case 'settings':

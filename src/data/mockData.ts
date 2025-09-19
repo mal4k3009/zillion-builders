@@ -294,6 +294,7 @@ export const priorityLevels = [
 export const taskStatuses = [
   { id: 'pending', name: 'Pending', color: '#6B7280' },
   { id: 'assigned_to_director', name: 'Assigned to Director', color: '#3B82F6' },
+  { id: 'assigned_to_chairman', name: 'Assigned to Chairman', color: '#7C3AED' },
   { id: 'assigned_to_employee', name: 'Assigned to Employee', color: '#06B6D4' },
   { id: 'in_progress', name: 'In Progress', color: '#F59E0B' },
   { id: 'completed_by_employee', name: 'Completed by Employee', color: '#84CC16' },

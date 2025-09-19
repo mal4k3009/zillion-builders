@@ -28,70 +28,70 @@ const navigationItems: NavigationItem[] = [
     label: 'Dashboard',
     icon: <LayoutDashboard className="w-5 h-5" />,
     href: '#dashboard',
-    roles: ['master', 'director', 'employee']
+    roles: ['master', 'director', 'chairman', 'employee']
   },
   {
     id: 'tasks',
     label: 'Tasks',
     icon: <CheckSquare className="w-5 h-5" />,
     href: '#tasks',
-    roles: ['master', 'director', 'employee']
+    roles: ['master', 'director', 'chairman', 'employee']
   },
   {
     id: 'projects',
     label: 'Projects',
     icon: <FolderOpen className="w-5 h-5" />,
     href: '#projects',
-    roles: ['master', 'director']
+    roles: ['master', 'director', 'chairman']
   },
   {
     id: 'categories',
     label: 'Categories',
     icon: <Tags className="w-5 h-5" />,
     href: '#categories',
-    roles: ['master', 'director']
+    roles: ['master', 'director', 'chairman']
   },
   {
     id: 'users',
     label: 'User Management',
     icon: <Users className="w-5 h-5" />,
     href: '#users',
-    roles: ['master']
+    roles: ['master', 'director', 'chairman']
   },
   {
     id: 'chat',
     label: 'Messages',
     icon: <MessageSquare className="w-5 h-5" />,
     href: '#chat',
-    roles: ['master', 'director', 'employee']
+    roles: ['master', 'director', 'chairman', 'employee']
   },
   {
     id: 'notifications',
     label: 'Notifications',
     icon: <Bell className="w-5 h-5" />,
     href: '#notifications',
-    roles: ['master', 'director', 'employee']
+    roles: ['master', 'director', 'chairman', 'employee']
   },
   {
     id: 'analytics',
     label: 'Analytics',
     icon: <BarChart3 className="w-5 h-5" />,
     href: '#analytics',
-    roles: ['master', 'director']
+    roles: ['master', 'director', 'chairman']
   },
   {
     id: 'whatsapp',
     label: 'WhatsApp',
     icon: <Smartphone className="w-5 h-5" />,
     href: '#whatsapp',
-    roles: ['master']
+    roles: ['master', 'director', 'chairman']
   },
   {
     id: 'calendar',
     label: 'Calendar',
     icon: <Calendar className="w-5 h-5" />,
     href: '#calendar',
-    roles: ['master', 'director', 'employee']
+    roles: ['master', 'director', 'chairman', 'employee']
   }
 ];
 

@@ -27,6 +27,9 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   const { state, createNotification, createActivity } = useApp();
   const [userCategories, setUserCategories] = useState<UserCategory[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [showAssigneeModal, setShowAssigneeModal] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string>('');
+  const [assignableUsers, setAssignableUsers] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -262,22 +265,84 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   const getAssignableUsers = () => {
     if (!state.currentUser) return [];
     
-    // TEMPORARY: Show all users for debugging
-    console.log('Current user role:', state.currentUser.role);
+    // Return all users for now - will filter based on status selection
     return state.users;
+  };
+
+  // Get assignable users based on status selection and current user role
+  const getAssignableUsersForStatus = (selectedStatus: string) => {
+    if (!state.currentUser) return [];
     
-    /* Original filtering logic:
-    if (state.currentUser.role === 'master') {
-      // Master admin can assign to directors
-      return state.users.filter(u => u.role === 'director');
-    } else if (state.currentUser.role === 'director') {
-      // Directors can assign to employees under them
-      return state.users.filter(u => u.role === 'employee' && u.reportsTo === state.currentUser!.id);
-    } else {
-      // Employees cannot assign tasks to others
-      return [];
+    const currentUserRole = state.currentUser.role;
+    
+    switch (selectedStatus) {
+      case 'assigned_to_director':
+        // Master can assign to directors, Directors can assign to other directors, Chairman can assign to directors
+        if (['master', 'director', 'chairman'].includes(currentUserRole)) {
+          return state.users.filter(u => u.role === 'director');
+        }
+        return [];
+        
+      case 'assigned_to_chairman':
+        // Master can assign to chairman, Directors can assign to chairman, Chairman can assign to other chairmen
+        if (['master', 'director', 'chairman'].includes(currentUserRole)) {
+          return state.users.filter(u => u.role === 'chairman');
+        }
+        return [];
+        
+      case 'assigned_to_employee':
+        // Master, Director, and Chairman can assign to employees
+        if (['master', 'director', 'chairman'].includes(currentUserRole)) {
+          return state.users.filter(u => u.role === 'employee');
+        }
+        return [];
+        
+      default:
+        return [];
     }
-    */
+  };
+
+  // Handle status change with assignee selection
+  const handleStatusChange = (newStatus: string) => {
+    if (newStatus === 'assigned_to_director' || newStatus === 'assigned_to_chairman' || newStatus === 'assigned_to_employee') {
+      const assignableUsers = getAssignableUsersForStatus(newStatus);
+      
+      if (assignableUsers.length === 0) {
+        const roleType = newStatus === 'assigned_to_director' ? 'directors' : 
+                        newStatus === 'assigned_to_chairman' ? 'chairmen' : 'employees';
+        alert(`No ${roleType} available for assignment`);
+        return;
+      }
+      
+      if (assignableUsers.length === 1) {
+        // Auto-assign if only one user available
+        const userId = assignableUsers[0].firebaseUid || assignableUsers[0].uid || assignableUsers[0].id?.toString() || '';
+        setFormData(prev => ({ 
+          ...prev, 
+          status: newStatus as Task['status'],
+          assignedTo: userId
+        }));
+      } else {
+        // Show selection modal for multiple users
+        setAssignableUsers(assignableUsers);
+        setPendingStatus(newStatus);
+        setShowAssigneeModal(true);
+      }
+    } else {
+      setFormData(prev => ({ ...prev, status: newStatus as Task['status'] }));
+    }
+  };
+
+  // Handle assignee selection from modal
+  const handleAssigneeSelection = (userId: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      status: pendingStatus as Task['status'],
+      assignedTo: userId
+    }));
+    setShowAssigneeModal(false);
+    setPendingStatus('');
+    setAssignableUsers([]);
   };
 
   const departmentUsers = getAssignableUsers();
@@ -576,7 +641,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                     </label>
                     <select
                       value={formData.status}
-                      onChange={(e) => setFormData({ ...formData, status: e.target.value as Task['status'] })}
+                      onChange={(e) => handleStatusChange(e.target.value)}
                       className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
                     >
@@ -653,6 +718,67 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
           )}
         </div>
       </div>
+
+      {/* Assignee Selection Modal */}
+      {showAssigneeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Select {pendingStatus === 'assigned_to_director' ? 'Director' : 
+                          pendingStatus === 'assigned_to_chairman' ? 'Chairman' : 'Employee'}
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowAssigneeModal(false);
+                    setPendingStatus('');
+                    setAssignableUsers([]);
+                  }}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 max-h-96 overflow-y-auto">
+              <div className="space-y-3">
+                {assignableUsers.map(user => (
+                  <button
+                    key={user.firebaseUid || user.uid || user.id}
+                    onClick={() => handleAssigneeSelection(user.firebaseUid || user.uid || user.id?.toString() || '')}
+                    className="w-full p-4 text-left border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">{user.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{user.role} - {user.designation}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => {
+                  setShowAssigneeModal(false);
+                  setPendingStatus('');
+                  setAssignableUsers([]);
+                }}
+                className="w-full px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

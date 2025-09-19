@@ -1,8 +1,10 @@
 export interface User {
   id: number;
+  uid?: string; // Firebase UID for new users
+  firebaseUid?: string; // Firebase UID stored in Firestore
   username: string;
   password: string;
-  role: 'master' | 'director' | 'employee';
+  role: 'master' | 'director' | 'employee' | 'chairman';
   designation: string;
   name: string;
   email: string;
@@ -30,7 +32,7 @@ export interface Task {
   category: string;
   assignedTo: number;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'pending' | 'assigned_to_director' | 'assigned_to_employee' | 'in_progress' | 'completed_by_employee' | 'pending_director_approval' | 'pending_admin_approval' | 'completed' | 'paused' | 'rejected';
+  status: 'pending' | 'assigned_to_director' | 'assigned_to_chairman' | 'assigned_to_employee' | 'in_progress' | 'completed_by_employee' | 'pending_director_approval' | 'pending_admin_approval' | 'completed' | 'paused' | 'rejected';
   approvalStatus?: 'pending_approval' | 'approved' | 'rejected';
   dueDate: string;
   createdAt: string;
