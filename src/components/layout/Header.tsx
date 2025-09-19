@@ -36,10 +36,10 @@ export function Header() {
           </button>
           <h1 className="text-base sm:text-lg md:text-xl font-semibold text-deep-charcoal dark:text-pure-white truncate">
             <span className="hidden xs:inline">
-              {state.currentUser?.role === 'master' ? 'Master Dashboard' : `${state.currentUser?.department} Dashboard`}
+              {state.currentUser?.role === 'master' ? 'Master Dashboard' : `${state.currentUser?.name.split(' ')[0]} Dashboard`}
             </span>
             <span className="xs:hidden">
-              {state.currentUser?.role === 'master' ? 'Master' : state.currentUser?.department}
+              {state.currentUser?.role === 'master' ? 'Master' : state.currentUser?.name.split(' ')[0]}
             </span>
           </h1>
         </div>

@@ -38,18 +38,8 @@ export function LoginPage() {
 
   const quickLogin = (userType: string) => {
     const credentials: Record<string, { email: string; password: string }> = {
-      // Original Master Admin
-      master: { email: 'masteradmin@zillion-builders-internal.com', password: 'admin123' },
-      // Chairman - from migrated users
-      chairman: { email: 'rajesh_chairman@zillion-builders-internal.com', password: 'chairman123' },
-      // Directors - from migrated users  
-      director1: { email: 'priya_director@zillion-builders-internal.com', password: 'director123' },
-      director2: { email: 'ankit_director@zillion-builders-internal.com', password: 'director123' },
-      // Staff members - from migrated users
-      staff1: { email: 'suresh_staff@zillion-builders-internal.com', password: 'staff123' },
-      staff2: { email: 'meera_staff@zillion-builders-internal.com', password: 'staff123' },
-      // Malak - The Best Developer
-      malak: { email: 'malak@zilliongroup.com', password: 'malak123' }
+      // Master Admin with correct email
+      master: { email: 'admin@company.com', password: 'admin123' }
     };
 
     const creds = credentials[userType];
@@ -134,48 +124,12 @@ export function LoginPage() {
 
           <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-white/20">
             <p className="text-accent-gold text-xs sm:text-sm text-center mb-3 sm:mb-4">Quick Login (Demo)</p>
-            <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
+            <div className="flex justify-center">
               <button
                 onClick={() => quickLogin('master')}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-brand-gold/20 hover:bg-brand-gold/30 text-accent-gold text-xs rounded-lg transition-colors"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-brand-gold/20 hover:bg-brand-gold/30 text-accent-gold text-sm sm:text-base rounded-lg transition-colors"
               >
                 Master Admin
-              </button>
-              <button
-                onClick={() => quickLogin('chairman')}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600/20 hover:bg-red-600/30 text-red-200 text-xs rounded-lg transition-colors"
-              >
-                Chairman
-              </button>
-              <button
-                onClick={() => quickLogin('director1')}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 text-xs rounded-lg transition-colors"
-              >
-                Director 1
-              </button>
-              <button
-                onClick={() => quickLogin('director2')}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600/20 hover:bg-purple-600/30 text-purple-200 text-xs rounded-lg transition-colors"
-              >
-                Director 2
-              </button>
-              <button
-                onClick={() => quickLogin('staff1')}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-green-600/20 hover:bg-green-600/30 text-green-200 text-xs rounded-lg transition-colors"
-              >
-                Staff 1
-              </button>
-              <button
-                onClick={() => quickLogin('staff2')}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-green-600/20 hover:bg-green-600/30 text-green-200 text-xs rounded-lg transition-colors"
-              >
-                Staff 2
-              </button>
-              <button
-                onClick={() => quickLogin('malak')}
-                className="px-2 sm:px-3 py-1.5 sm:py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 text-xs rounded-lg transition-colors col-span-2"
-              >
-                🚀 Malak - The Best Developer
               </button>
             </div>
           </div>

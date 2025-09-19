@@ -74,6 +74,67 @@ export const usersService = {
     return nextId;
   },
 
+  async createWithAuth(userData: Omit<User, 'id'>): Promise<number> {
+    try {
+      console.log('🔐 Creating user with Firebase Auth and Firestore...');
+      
+      // Create Firestore user first to get the ID
+      const nextId = await this.getNextUserId();
+      
+      // Import Firebase Auth functions
+      const { createUserWithEmailAndPassword, getAuth } = await import('firebase/auth');
+      const auth = getAuth();
+      
+      try {
+        // Create Firebase Auth user
+        console.log('📧 Creating Firebase Auth user for:', userData.email);
+        const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
+        const firebaseUser = userCredential.user;
+        
+        console.log('✅ Firebase Auth user created:', firebaseUser.uid);
+        
+        // Create Firestore user with Firebase UID
+        const docRef = doc(db, 'users', nextId.toString());
+        const cleanUserData = Object.fromEntries(
+          Object.entries(userData).filter(([, value]) => value !== undefined)
+        );
+        
+        await setDoc(docRef, {
+          ...cleanUserData,
+          firebaseUid: firebaseUser.uid,
+          createdAt: serverTimestamp()
+        });
+        
+        console.log('✅ User created in both Auth and Firestore with ID:', nextId);
+        return nextId;
+        
+      } catch (authError: unknown) {
+        const error = authError as { code?: string; message?: string };
+        console.error('❌ Firebase Auth error:', error);
+        
+        // If Auth creation fails, still create Firestore user with flag
+        const docRef = doc(db, 'users', nextId.toString());
+        const cleanUserData = Object.fromEntries(
+          Object.entries(userData).filter(([, value]) => value !== undefined)
+        );
+        
+        await setDoc(docRef, {
+          ...cleanUserData,
+          needsAuthCreation: true,
+          authError: error.message || 'Unknown auth error',
+          createdAt: serverTimestamp()
+        });
+        
+        console.log('⚠️ Created Firestore user, but Auth creation failed. Manual auth creation needed.');
+        throw new Error(`User created in database but authentication setup failed: ${error.message || 'Unknown error'}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error creating user:', error);
+      throw error;
+    }
+  },
+
   async update(id: number, userData: Partial<User>): Promise<void> {
     const docRef = doc(db, 'users', id.toString());
     await updateDoc(docRef, {
@@ -423,12 +484,11 @@ export const chatService = {
   onConversationSnapshot(userId1: number, userId2: number, callback: (messages: ChatMessage[]) => void) {
     console.log(`🔥 Setting up real-time listener for conversation: User ${userId1} ↔ User ${userId2}`);
     
-    // Use a simpler query that doesn't require composite index
-    // Query for messages between two specific users
+    // Use a broader query to get all messages and then filter client-side
+    // This avoids complex Firestore index requirements
     const q = query(
       collection(db, 'chatMessages'),
-      where('senderId', 'in', [userId1, userId2]),
-      where('receiverId', 'in', [userId1, userId2])
+      orderBy('timestamp', 'asc')
     );
     
     return onSnapshot(q, (querySnapshot) => {
@@ -438,19 +498,33 @@ export const chatService = {
       const conversationMessages = querySnapshot.docs
         .map(doc => {
           const data = doc.data();
+          // Handle both string and number IDs for compatibility
+          const senderId = typeof data.senderId === 'string' ? parseInt(data.senderId) : data.senderId;
+          const receiverId = typeof data.receiverId === 'string' ? parseInt(data.receiverId) : data.receiverId;
+          
           return { 
             id: doc.id, 
             ...data,
+            senderId,
+            receiverId,
             timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
           } as ChatMessage;
         })
-        .filter(msg => 
-          (msg.senderId === userId1 && msg.receiverId === userId2) ||
-          (msg.senderId === userId2 && msg.receiverId === userId1)
-        )
+        .filter(msg => {
+          // Check if this message belongs to the conversation between userId1 and userId2
+          const isConversationMessage = 
+            (msg.senderId === userId1 && msg.receiverId === userId2) ||
+            (msg.senderId === userId2 && msg.receiverId === userId1);
+          
+          if (isConversationMessage) {
+            console.log(`📨 Found conversation message: ${msg.senderId} → ${msg.receiverId}: ${msg.content?.substring(0, 50)}...`);
+          }
+          
+          return isConversationMessage;
+        })
         .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       
-      console.log(`📋 Filtered conversation messages: ${conversationMessages.length}`);
+      console.log(`📋 Filtered conversation messages: ${conversationMessages.length} for users ${userId1} ↔ ${userId2}`);
       callback(conversationMessages);
     }, (error) => {
       console.error('❌ Error in real-time listener:', error);
@@ -522,17 +596,30 @@ export const chatService = {
   },
 
   async send(messageData: Omit<ChatMessage, 'id'>): Promise<string> {
+    console.log(`💾 Storing chat message:`, {
+      senderId: messageData.senderId,
+      receiverId: messageData.receiverId,
+      content: messageData.content?.substring(0, 50),
+      type: messageData.type
+    });
+    
     const participants = [
       `${messageData.senderId}_${messageData.receiverId}`,
       `${messageData.receiverId}_${messageData.senderId}`
     ];
     
-    const docRef = await addDoc(collection(db, 'chatMessages'), {
+    // Ensure IDs are stored as numbers for consistency
+    const cleanMessageData = {
       ...messageData,
+      senderId: Number(messageData.senderId),
+      receiverId: Number(messageData.receiverId),
       participants,
       timestamp: serverTimestamp(),
       createdAt: serverTimestamp()
-    });
+    };
+    
+    const docRef = await addDoc(collection(db, 'chatMessages'), cleanMessageData);
+    console.log(`✅ Chat message stored with ID: ${docRef.id}`);
     return docRef.id;
   },
 

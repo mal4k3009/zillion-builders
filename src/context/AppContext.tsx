@@ -403,8 +403,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // User operations
   const createUser = async (userData: Omit<User, 'id'>) => {
     try {
-      const newUserId = await usersService.create(userData);
-      console.log('✅ User created with ID:', newUserId);
+      // Use createWithAuth to create both Firebase Auth and Firestore user
+      const newUserId = await usersService.createWithAuth(userData);
+      console.log('✅ User created with Auth and Firestore, ID:', newUserId);
       await loadAllData();
     } catch (error) {
       console.error('Error creating user:', error);

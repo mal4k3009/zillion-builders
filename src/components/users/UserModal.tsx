@@ -93,11 +93,13 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
       }
 
       // Determine role based on designation
-      let userRole: 'master' | 'sub';
-      if (formData.designation === 'chairman' || formData.designation === 'director') {
-        userRole = 'master'; // Chairman and Director have master privileges
+      let userRole: 'master' | 'director' | 'employee';
+      if (formData.designation === 'chairman') {
+        userRole = 'master'; // Chairman has master privileges
+      } else if (formData.designation === 'director') {
+        userRole = 'director'; // Director role
       } else {
-        userRole = 'sub'; // Staff members are sub users
+        userRole = 'employee'; // Staff members are employees
       }
 
       const userData = {
@@ -122,6 +124,10 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
           userId: state.currentUser!.id,
           timestamp: new Date().toISOString()
         });
+        
+        // Show message about creating authentication
+        console.log('🔐 User created in Firestore. Firebase Auth will be created automatically.');
+        console.log('📝 Login credentials will be:', { email: formData.email, password: formData.password });
       } else {
         await updateUser(user!.id, userData);
         

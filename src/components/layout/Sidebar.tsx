@@ -28,28 +28,28 @@ const navigationItems: NavigationItem[] = [
     label: 'Dashboard',
     icon: <LayoutDashboard className="w-5 h-5" />,
     href: '#dashboard',
-    roles: ['master', 'sub']
+    roles: ['master', 'director', 'employee']
   },
   {
     id: 'tasks',
     label: 'Tasks',
     icon: <CheckSquare className="w-5 h-5" />,
     href: '#tasks',
-    roles: ['master', 'sub']
+    roles: ['master', 'director', 'employee']
   },
   {
     id: 'projects',
     label: 'Projects',
     icon: <FolderOpen className="w-5 h-5" />,
     href: '#projects',
-    roles: ['master']
+    roles: ['master', 'director']
   },
   {
     id: 'categories',
     label: 'Categories',
     icon: <Tags className="w-5 h-5" />,
     href: '#categories',
-    roles: ['master']
+    roles: ['master', 'director']
   },
   {
     id: 'users',
@@ -63,21 +63,21 @@ const navigationItems: NavigationItem[] = [
     label: 'Messages',
     icon: <MessageSquare className="w-5 h-5" />,
     href: '#chat',
-    roles: ['master', 'sub']
+    roles: ['master', 'director', 'employee']
   },
   {
     id: 'notifications',
     label: 'Notifications',
     icon: <Bell className="w-5 h-5" />,
     href: '#notifications',
-    roles: ['master', 'sub']
+    roles: ['master', 'director', 'employee']
   },
   {
     id: 'analytics',
     label: 'Analytics',
     icon: <BarChart3 className="w-5 h-5" />,
     href: '#analytics',
-    roles: ['master']
+    roles: ['master', 'director']
   },
   {
     id: 'whatsapp',
@@ -91,7 +91,7 @@ const navigationItems: NavigationItem[] = [
     label: 'Calendar',
     icon: <Calendar className="w-5 h-5" />,
     href: '#calendar',
-    roles: ['master', 'sub']
+    roles: ['master', 'director', 'employee']
   }
 ];
 
