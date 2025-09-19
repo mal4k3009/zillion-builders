@@ -4,8 +4,8 @@ import { useApp } from '../../context/AppContext';
 // import { requestNotificationPermission } from '../../firebase/messaging'; // DISABLED - n8n will handle notifications
 
 export function LoginPage() {
-  const { state, setCurrentUser } = useApp();
-  const [username, setUsername] = useState('');
+  const { signInWithEmail } = useApp();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -16,56 +16,44 @@ export function LoginPage() {
     setLoading(true);
     setError('');
 
-    console.log('🔐 Login attempt for username:', username);
+    console.log('🔐 Login attempt for email:', email);
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    const user = state.users.find(u => 
-      u.username === username && u.password === password && u.status === 'active'
-    );
-
-    if (user) {
-      console.log('✅ User found:', user.name);
+    try {
+      const success = await signInWithEmail(email, password);
       
-      // Try to get FCM token for push notifications
-      console.log('🔔 Requesting notification permission...');
-      // const fcmToken = await requestNotificationPermission(); // DISABLED - n8n will handle notifications
-      const fcmToken = null; // No FCM token needed
-      console.log('🎯 FCM Token received:', fcmToken ? 'Yes' : 'No');
-      
-      const updatedUser = { ...user, lastLogin: new Date().toISOString() };
-      
-      // Set current user with FCM token
-      console.log('💾 Saving user session...');
-      await setCurrentUser(updatedUser, fcmToken || undefined);
-      console.log('✅ Login completed for:', user.name);
-    } else {
-      console.log('❌ Login failed: Invalid credentials');
-      setError('Invalid credentials or account is inactive');
+      if (success) {
+        console.log('✅ Login completed successfully');
+        // The AppContext will handle the user state update via Firebase Auth
+      } else {
+        console.log('❌ Login failed: Invalid credentials');
+        setError('Invalid credentials or account is inactive');
+      }
+    } catch (error) {
+      console.error('❌ Login error:', error);
+      setError('Authentication failed. Please try again.');
     }
     
     setLoading(false);
   };
 
   const quickLogin = (userType: string) => {
-    const credentials: Record<string, { username: string; password: string }> = {
+    const credentials: Record<string, { email: string; password: string }> = {
       // Original Master Admin
-      master: { username: 'masteradmin', password: 'admin123' },
-      // Chairman - from populated users
-      chairman: { username: 'rajesh_chairman', password: 'chairman123' },
-      // Directors - from populated users  
-      director1: { username: 'priya_director', password: 'director123' },
-      director2: { username: 'ankit_director', password: 'director123' },
-      // Staff members - from populated users
-      staff1: { username: 'suresh_staff', password: 'staff123' },
-      staff2: { username: 'meera_staff', password: 'staff123' }
+      master: { email: 'masteradmin@zillion-builders-internal.com', password: 'admin123' },
+      // Chairman - from migrated users
+      chairman: { email: 'rajesh_chairman@zillion-builders-internal.com', password: 'chairman123' },
+      // Directors - from migrated users  
+      director1: { email: 'priya_director@zillion-builders-internal.com', password: 'director123' },
+      director2: { email: 'ankit_director@zillion-builders-internal.com', password: 'director123' },
+      // Staff members - from migrated users
+      staff1: { email: 'suresh_staff@zillion-builders-internal.com', password: 'staff123' },
+      staff2: { email: 'meera_staff@zillion-builders-internal.com', password: 'staff123' }
     };
 
     const creds = credentials[userType];
     if (creds) {
       console.log('⚡ Quick login for:', userType, 'with credentials:', creds);
-      setUsername(creds.username);
+      setEmail(creds.email);
       setPassword(creds.password);
     }
   };
@@ -91,14 +79,14 @@ export function LoginPage() {
 
             <div>
               <label className="block text-accent-gold text-xs sm:text-sm font-medium mb-2">
-                Username
+                Email
               </label>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base bg-white/10 border border-white/20 rounded-lg text-white placeholder-accent-gold/70 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:border-transparent transition-all"
-                placeholder="Enter your username"
+                placeholder="Enter your email"
                 required
               />
             </div>

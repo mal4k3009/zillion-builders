@@ -11,6 +11,7 @@ import {
   categoriesService,
   userCategoriesService
 } from '../firebase/services';
+import { authService } from '../firebase/auth';
 import { taskMonitoringService } from '../services/taskMonitoringService';
 import { taskAutoStatusService } from '../services/taskAutoStatusService';
 
@@ -240,8 +241,8 @@ interface AppContextType {
   markNotificationAsRead: (id: string) => Promise<void>;
   markAllNotificationsAsRead: (userId: number) => Promise<void>;
   createActivity: (activityData: Omit<Activity, 'id'>) => Promise<void>;
-  setCurrentUser: (user: User, fcmToken?: string) => Promise<void>;
-  logout: () => void;
+  signInWithEmail: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   // Project management functions
   createProject: (projectData: Omit<Project, 'id' | 'categories'>) => Promise<void>;
   updateProject: (id: number, projectData: Partial<Project>) => Promise<void>;
@@ -295,9 +296,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       // Initialize task monitoring service with users data
       taskMonitoringService.initialize(users);
-      
-      // Restore user session after users are loaded
-      setTimeout(() => restoreUserSession(), 100);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -564,48 +562,64 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // User login and FCM token management
-  const setCurrentUser = async (user: User, fcmToken?: string) => {
+  // User authentication using Firebase Auth
+  const signInWithEmail = async (email: string, password: string): Promise<boolean> => {
     try {
-      dispatch({ type: 'SET_CURRENT_USER', payload: user });
-      
-      // Save session to localStorage (expires in 1 year - effectively persistent until manual logout)
-      const sessionData = {
-        userId: user.id,
-        userName: user.name, // Store name for debugging
-        loginTime: Date.now(),
-        expiry: Date.now() + (365 * 24 * 60 * 60 * 1000) // 1 year
-      };
-      localStorage.setItem('zillion_user_session', JSON.stringify(sessionData));
-      console.log('💾 User session saved for:', user.name, 'Valid until:', new Date(sessionData.expiry).toLocaleDateString());
-      
-      // If FCM token is provided, store it in the user's document
-      if (fcmToken) {
-        await usersService.updateFCMToken(user.id, fcmToken);
-        console.log('🔔 FCM token stored for user:', user.name);
+      const result = await authService.signInWithEmail(email, password);
+      if (result.success && result.user) {
+        console.log('✅ Authentication successful for:', result.user.name);
+        
+        // Update last login time
+        const updatedUser = { ...result.user, lastLogin: new Date().toISOString() };
+        await usersService.update(updatedUser.id, updatedUser);
+        
+        return true;
+      } else {
+        console.log('❌ Authentication failed:', result.error);
+        return false;
       }
     } catch (error) {
-      console.error('Error setting current user:', error);
+      console.error('Error during authentication:', error);
+      return false;
     }
   };
 
   // Logout function
-  const logout = () => {
-    const currentUserName = state.currentUser?.name || 'Unknown user';
-    dispatch({ type: 'SET_CURRENT_USER', payload: null });
-    localStorage.removeItem('zillion_user_session');
-    console.log('👋 User manually logged out:', currentUserName);
-    console.log('🗑️ Session cleared from localStorage');
+  const logout = async (): Promise<void> => {
+    try {
+      const currentUserName = state.currentUser?.name || 'Unknown user';
+      await authService.signOut();
+      console.log('👋 User manually logged out:', currentUserName);
+    } catch (error) {
+      console.error('Error during logout:', error);
+    }
   };
 
-  // Load data and check for existing session on component mount
+  // Initialize app and Firebase Auth on component mount
   useEffect(() => {
     const initializeApp = async () => {
+      // Load all data first
       await loadAllData();
+      
+      // Initialize Firebase Auth and set up auth state listener
+      console.log('🔥 Initializing Firebase Auth...');
+      authService.onAuthStateChange((user) => {
+        console.log('🔥 Auth state changed in context:', user ? user.name : 'No user');
+        dispatch({ type: 'SET_CURRENT_USER', payload: user });
+        
+        if (user) {
+          // Initialize FCM for logged in user
+          initializeFCMForUser(user);
+        }
+      });
+      
+      // Initialize auth service (this will restore any existing auth state)
+      await authService.init();
       
       // Start the automatic task status service
       taskAutoStatusService.start();
     };
+    
     initializeApp();
     
     // Cleanup function to stop the service when component unmounts
@@ -613,68 +627,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       taskAutoStatusService.stop();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Restore user session after users are loaded
-  useEffect(() => {
-    if (state.users.length > 0 && !state.currentUser) {
-      console.log('👥 Users loaded, attempting session restoration...', state.users.length, 'users available');
-      restoreUserSession();
-    }
-  }, [state.users]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Additional check for session restoration after a delay (in case of timing issues)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (state.users.length > 0 && !state.currentUser) {
-        console.log('⏰ Delayed session restoration check...');
-        restoreUserSession();
-      }
-    }, 1000); // 1 second delay
-
-    return () => clearTimeout(timer);
-  }, [state.users, state.currentUser]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Restore user session from localStorage
-  const restoreUserSession = () => {
-    try {
-      const savedSession = localStorage.getItem('zillion_user_session');
-      console.log('🔍 Checking for saved session...', savedSession ? 'Found' : 'None');
-      
-      if (savedSession) {
-        const sessionData = JSON.parse(savedSession);
-        console.log('📋 Session data:', {
-          userId: sessionData.userId,
-          userName: sessionData.userName,
-          loginTime: sessionData.loginTime ? new Date(sessionData.loginTime).toLocaleString() : 'Unknown',
-          expiry: new Date(sessionData.expiry).toLocaleString(),
-          isValid: sessionData.expiry > Date.now()
-        });
-        
-        // Check if session is still valid (1 year expiry means it should basically never expire)
-        if (sessionData.expiry > Date.now()) {
-          const user = state.users.find(u => u.id === sessionData.userId);
-          if (user) {
-            console.log('✅ Restoring user session for:', user.name);
-            dispatch({ type: 'SET_CURRENT_USER', payload: user });
-            
-            // Re-initialize FCM token for this user
-            initializeFCMForUser(user);
-          } else {
-            console.log('⚠️ User not found in current users list, clearing session');
-            localStorage.removeItem('zillion_user_session');
-          }
-        } else {
-          console.log('⏰ Session expired (this should be rare with 1-year expiry), clearing session');
-          localStorage.removeItem('zillion_user_session');
-        }
-      } else {
-        console.log('📭 No saved session found');
-      }
-    } catch (error) {
-      console.error('❌ Error restoring session:', error);
-      localStorage.removeItem('zillion_user_session');
-    }
-  };
 
   // Initialize FCM token for logged in user (DISABLED - n8n will handle notifications)
   const initializeFCMForUser = async (user: User) => {
@@ -844,7 +796,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     markNotificationAsRead,
     markAllNotificationsAsRead,
     createActivity,
-    setCurrentUser,
+    signInWithEmail,
     logout,
     createProject,
     updateProject,
