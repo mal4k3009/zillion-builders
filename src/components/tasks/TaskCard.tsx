@@ -47,7 +47,8 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const currentUserRole = state.currentUser?.role;
   const canAssignToDirector = currentUserRole === 'master' && task.status === 'pending';
   const canAssignToEmployee = currentUserRole === 'director' && task.status === 'assigned_to_director';
-  const canMarkComplete = currentUserRole === 'employee' && task.status === 'assigned_to_employee' && task.assignedTo === currentUserId;
+  const canMarkInProgress = currentUserRole === 'employee' && task.status === 'assigned_to_employee' && task.assignedTo === currentUserId;
+  const canMarkComplete = currentUserRole === 'employee' && task.status === 'in_progress' && task.assignedTo === currentUserId;
   const canApproveAsDirector = currentUserRole === 'director' && task.status === 'pending_director_approval' && task.assignedDirector === currentUserId;
   const canApproveAsAdmin = currentUserRole === 'master' && task.status === 'pending_admin_approval' && task.createdBy === currentUserId;
   
@@ -104,8 +105,7 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const handleAssignToDirector = async (directorId: number) => {
     try {
       await tasksService.assignToDirector(task.id, directorId);
-      // Refresh tasks in context
-      window.location.reload(); // Temporary solution, should use proper state update
+      // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
       console.error('Error assigning to director:', error);
     }
@@ -114,16 +114,25 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const handleAssignToEmployee = async (employeeId: number) => {
     try {
       await tasksService.assignToEmployee(task.id, employeeId);
-      window.location.reload();
+      // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
       console.error('Error assigning to employee:', error);
+    }
+  };
+
+  const handleMarkInProgress = async () => {
+    try {
+      await tasksService.update(task.id, { status: 'in_progress' });
+      // Update will be reflected via real-time listener, no reload needed
+    } catch (error) {
+      console.error('Error marking as in progress:', error);
     }
   };
 
   const handleMarkComplete = async () => {
     try {
       await tasksService.markAsCompletedByEmployee(task.id);
-      window.location.reload();
+      // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
       console.error('Error marking as complete:', error);
     }
@@ -136,7 +145,7 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
       } else if (canApproveAsAdmin) {
         await tasksService.approveByAdmin(task.id, approved, rejectionReason);
       }
-      window.location.reload();
+      // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
       console.error('Error processing approval:', error);
     }
@@ -312,6 +321,17 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
 
         {/* Action Buttons */}
         <div className="flex gap-2">
+          {/* Mark in Progress Button for Employees */}
+          {canMarkInProgress && (
+            <button
+              onClick={handleMarkInProgress}
+              className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              <Clock className="w-3 h-3" />
+              Mark in Progress
+            </button>
+          )}
+
           {/* Mark as Complete Button for Employees */}
           {canMarkComplete && (
             <button
@@ -377,9 +397,9 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
               defaultValue=""
             >
               <option value="">Assign to Employee</option>
-              {state.users.filter(u => u.role === 'employee' && u.reportsTo === currentUserId).map(employee => (
+              {state.users.filter(u => u.role === 'employee').map(employee => (
                 <option key={employee.id} value={employee.id}>
-                  {employee.name}
+                  {employee.name} ({employee.designation})
                 </option>
               ))}
             </select>

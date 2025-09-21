@@ -39,6 +39,11 @@ function AppContent() {
     }
   }, [state.theme, state.currentUser]);
 
+  // Show loading spinner while authentication is being initialized
+  if (state.authLoading) {
+    return <LoadingSpinner />;
+  }
+
   // Show loading spinner while data is being loaded
   if (state.loading) {
     return <LoadingSpinner />;

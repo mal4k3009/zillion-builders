@@ -69,6 +69,9 @@ class AuthService {
     try {
       console.log('🔐 Attempting to sign in user with email:', email);
       
+      // Clear any existing session first to avoid conflicts
+      this.clearCurrentState();
+      
       // Get all users and find the one with matching email
       const users = await usersService.getAll();
       const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.status === 'active');
@@ -118,16 +121,22 @@ class AuthService {
     try {
       console.log('👋 User signing out...');
       
-      // Clear session from localStorage
-      localStorage.removeItem(this.SESSION_KEY);
-      
-      // Clear current user
-      this.setCurrentUser(null);
+      // Clear all state
+      this.clearCurrentState();
       
       console.log('✅ User signed out successfully');
     } catch (error) {
       console.error('❌ Error signing out:', error);
     }
+  }
+
+  // Private method to clear current state
+  private clearCurrentState(): void {
+    // Clear session from localStorage
+    localStorage.removeItem(this.SESSION_KEY);
+    
+    // Clear current user
+    this.setCurrentUser(null);
   }
 
   // Get current user

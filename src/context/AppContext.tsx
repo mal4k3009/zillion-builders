@@ -28,10 +28,12 @@ interface AppState {
   theme: 'light' | 'dark';
   sidebarOpen: boolean;
   loading: boolean;
+  authLoading: boolean;
 }
 
 type AppAction =
   | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_AUTH_LOADING'; payload: boolean }
   | { type: 'SET_CURRENT_USER'; payload: User | null }
   | { type: 'SET_USERS'; payload: User[] }
   | { type: 'ADD_USER'; payload: User }
@@ -89,13 +91,17 @@ const initialState: AppState = {
   userCategories: [],
   theme: getInitialTheme(),
   sidebarOpen: true,
-  loading: false
+  loading: false,
+  authLoading: true
 };
 
 function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
     case 'SET_LOADING':
       return { ...state, loading: action.payload };
+
+    case 'SET_AUTH_LOADING':
+      return { ...state, authLoading: action.payload };
 
     case 'SET_CURRENT_USER':
       return { ...state, currentUser: action.payload };
@@ -656,8 +662,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const logout = async (): Promise<void> => {
     try {
       const currentUserName = state.currentUser?.name || 'Unknown user';
+      
+      // Clear authentication
       await authService.signOut();
-      console.log('👋 User manually logged out:', currentUserName);
+      
+      // Reset application state to initial values
+      dispatch({ type: 'SET_CURRENT_USER', payload: null });
+      dispatch({ type: 'SET_TASKS', payload: [] });
+      dispatch({ type: 'SET_CHAT_MESSAGES', payload: [] });
+      dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
+      
+      console.log('👋 User manually logged out and state cleared:', currentUserName);
     } catch (error) {
       console.error('Error during logout:', error);
     }
@@ -666,26 +681,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Initialize app and Firebase Auth on component mount
   useEffect(() => {
     const initializeApp = async () => {
-      // Load all data first
-      await loadAllData();
+      console.log('🚀 Starting app initialization...');
+      dispatch({ type: 'SET_AUTH_LOADING', payload: true });
       
-      // Initialize Firebase Auth and set up auth state listener
-      console.log('🔥 Initializing Firebase Auth...');
-      authService.onAuthStateChange((user) => {
-        console.log('🔥 Auth state changed in context:', user ? user.name : 'No user');
+      try {
+        // Initialize Firebase Auth first (this will restore any existing auth state synchronously)
+        console.log('� Initializing authentication...');
+        const user = await authService.init();
         dispatch({ type: 'SET_CURRENT_USER', payload: user });
         
-        if (user) {
-          // Initialize FCM for logged in user
-          initializeFCMForUser(user);
-        }
-      });
-      
-      // Initialize auth service (this will restore any existing auth state)
-      await authService.init();
-      
-      // Start the automatic task status service
-      taskAutoStatusService.start();
+        // Set up auth state listener for future changes
+        authService.onAuthStateChange((user) => {
+          console.log('🔥 Auth state changed:', user ? user.name : 'No user');
+          dispatch({ type: 'SET_CURRENT_USER', payload: user });
+          
+          if (user) {
+            // Initialize FCM for logged in user
+            initializeFCMForUser(user);
+          }
+        });
+        
+        // Load all data
+        await loadAllData();
+        
+        // Start the automatic task status service
+        taskAutoStatusService.start();
+      } catch (error) {
+        console.error('❌ Error during app initialization:', error);
+      } finally {
+        dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+        console.log('✅ App initialization complete');
+      }
     };
     
     initializeApp();
