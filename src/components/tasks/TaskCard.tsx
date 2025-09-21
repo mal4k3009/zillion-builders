@@ -51,15 +51,34 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const canMarkComplete = currentUserRole === 'employee' && task.status === 'in_progress' && task.assignedTo === currentUserId;
   const canApproveAsDirector = currentUserRole === 'director' && task.status === 'pending_director_approval' && task.assignedDirector === currentUserId;
   const canApproveAsAdmin = currentUserRole === 'master' && task.status === 'pending_admin_approval' && task.createdBy === currentUserId;
+  const canApproveAsChairman = (currentUserRole === 'chairman' || (currentUserRole === 'master' && state.currentUser?.designation === 'chairman')) && 
+    task.status === 'pending_chairman_approval' && 
+    task.approvalChain.some(approval => approval.approverRole === 'chairman' && approval.approverUserId === currentUserId && approval.status === 'pending');
   
   // Get current pending approval info
   const getPendingApprovalInfo = () => {
     if (task.currentApprovalLevel === 'director') {
       const director = state.users.find(u => u.id === task.assignedDirector);
+      // If current user is the director who needs to approve, show simplified message
+      if (currentUserId === task.assignedDirector) {
+        return 'Pending Director Approval';
+      }
       return `Pending approval from Director: ${director?.name || 'Unknown'}`;
     } else if (task.currentApprovalLevel === 'admin') {
       const admin = state.users.find(u => u.id === task.createdBy);
+      // If current user is the admin who needs to approve, show simplified message
+      if (currentUserId === task.createdBy) {
+        return 'Pending Admin Approval';
+      }
       return `Pending approval from Admin: ${admin?.name || 'Unknown'}`;
+    } else if (task.currentApprovalLevel === 'chairman') {
+      const chairmanApproval = task.approvalChain.find(approval => approval.approverRole === 'chairman' && approval.status === 'pending');
+      const chairman = state.users.find(u => u.id === chairmanApproval?.approverUserId);
+      // If current user is the chairman who needs to approve, show simplified message
+      if (currentUserId === chairmanApproval?.approverUserId) {
+        return 'Pending Chairman Approval';
+      }
+      return `Pending approval from Chairman: ${chairman?.name || 'Unknown'}`;
     }
     return null;
   };
@@ -144,6 +163,8 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
         await tasksService.approveByDirector(task.id, approved, rejectionReason);
       } else if (canApproveAsAdmin) {
         await tasksService.approveByAdmin(task.id, approved, rejectionReason);
+      } else if (canApproveAsChairman) {
+        await tasksService.approveByChairman(task.id, approved, rejectionReason);
       }
       // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
@@ -343,8 +364,8 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
             </button>
           )}
 
-          {/* Approval Buttons for Directors and Admins */}
-          {(canApproveAsDirector || canApproveAsAdmin) && (
+          {/* Approval Buttons for Directors, Admins, and Chairmen */}
+          {(canApproveAsDirector || canApproveAsAdmin || canApproveAsChairman) && (
             <>
               <button
                 onClick={() => handleApproval(true)}
@@ -406,7 +427,7 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
           )}
 
           {/* Regular Status Dropdown for Other Cases */}
-          {!canMarkComplete && !canApproveAsDirector && !canApproveAsAdmin && !canAssignToDirector && !canAssignToEmployee && canEdit && (
+          {!canMarkComplete && !canApproveAsDirector && !canApproveAsAdmin && !canApproveAsChairman && !canAssignToDirector && !canAssignToEmployee && canEdit && (
             <select
               value={task.status}
               onChange={(e) => handleStatusChange(e.target.value)}

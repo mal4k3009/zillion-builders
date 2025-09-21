@@ -316,12 +316,24 @@ export const tasksService = {
     if (!task) throw new Error('Task not found');
     
     if (approved) {
-      // Create approval entry for admin
-      const adminApprovalEntry = {
-        id: `${taskId}_admin_${Date.now()}`,
+      // Find a chairman user to assign the approval to
+      const users = await usersService.getAll();
+      const chairmen = users.filter(u => u.role === 'chairman' || u.designation === 'chairman');
+      
+      // Sort by ID and take the highest ID (most recent chairman)
+      const chairman = chairmen.length > 0 
+        ? chairmen.sort((a, b) => b.id - a.id)[0] 
+        : users.find(u => u.role === 'master');
+      
+      console.log('🔍 Found chairmen:', chairmen.map(c => `ID: ${c.id}, Name: ${c.name}, Role: ${c.role}, Designation: ${c.designation}`));
+      console.log('✅ Selected chairman for approval:', chairman ? `ID: ${chairman.id}, Name: ${chairman.name}` : 'None');
+      
+      // Create approval entry for chairman
+      const chairmanApprovalEntry = {
+        id: `${taskId}_chairman_${Date.now()}`,
         taskId,
-        approverUserId: task.createdBy,
-        approverRole: 'admin' as const,
+        approverUserId: chairman?.id || task.createdBy, // Fallback to task creator if no chairman found
+        approverRole: 'chairman' as const,
         status: 'pending' as const,
         createdAt: new Date().toISOString()
       };
@@ -334,9 +346,9 @@ export const tasksService = {
       );
 
       await updateDoc(docRef, {
-        status: 'pending_admin_approval',
-        currentApprovalLevel: 'admin',
-        approvalChain: [...updatedApprovalChain, adminApprovalEntry],
+        status: 'pending_chairman_approval',
+        currentApprovalLevel: 'chairman',
+        approvalChain: [...updatedApprovalChain, chairmanApprovalEntry],
         updatedAt: serverTimestamp()
       });
     } else {
@@ -362,16 +374,16 @@ export const tasksService = {
     }
   },
 
-  async approveByAdmin(taskId: string, approved: boolean, rejectionReason?: string): Promise<void> {
+  async approveByChairman(taskId: string, approved: boolean, rejectionReason?: string): Promise<void> {
     const docRef = doc(db, 'tasks', taskId);
     const task = await this.getById(taskId);
     
     if (!task) throw new Error('Task not found');
     
     if (approved) {
-      // Update admin approval to approved and mark task as completed
+      // Update chairman approval to approved and mark task as completed
       const updatedApprovalChain = task.approvalChain.map(approval => 
-        approval.approverRole === 'admin' 
+        approval.approverRole === 'chairman' 
           ? { ...approval, status: 'approved' as const, approvedAt: new Date().toISOString() }
           : approval
       );
@@ -385,7 +397,7 @@ export const tasksService = {
     } else {
       // Reject and send back to employee
       const updatedApprovalChain = task.approvalChain.map(approval => 
-        approval.approverRole === 'admin' 
+        approval.approverRole === 'chairman' 
           ? { 
               ...approval, 
               status: 'rejected' as const, 
@@ -405,9 +417,25 @@ export const tasksService = {
     }
   },
 
-  async getTasksAwaitingApproval(userId: number, role: 'director' | 'master'): Promise<Task[]> {
-    const approvalLevel = role === 'master' ? 'admin' : 'director';
-    const statusToQuery = role === 'master' ? 'pending_admin_approval' : 'pending_director_approval';
+  // Keep the old method for backward compatibility
+  async approveByAdmin(taskId: string, approved: boolean, rejectionReason?: string): Promise<void> {
+    return this.approveByChairman(taskId, approved, rejectionReason);
+  },
+
+  async getTasksAwaitingApproval(userId: number, role: 'director' | 'master' | 'chairman'): Promise<Task[]> {
+    let approvalLevel: string;
+    let statusToQuery: string;
+    
+    if (role === 'chairman') {
+      approvalLevel = 'chairman';
+      statusToQuery = 'pending_chairman_approval';
+    } else if (role === 'master') {
+      approvalLevel = 'admin';
+      statusToQuery = 'pending_admin_approval';
+    } else {
+      approvalLevel = 'director';
+      statusToQuery = 'pending_director_approval';
+    }
     
     const q = query(
       collection(db, 'tasks'),

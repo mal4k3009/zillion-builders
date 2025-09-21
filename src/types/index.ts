@@ -18,7 +18,7 @@ export interface TaskApproval {
   id: string;
   taskId: string;
   approverUserId: number;
-  approverRole: 'director' | 'admin';
+  approverRole: 'director' | 'admin' | 'chairman';
   status: 'pending' | 'approved' | 'rejected';
   approvedAt?: string;
   rejectionReason?: string;
@@ -32,7 +32,7 @@ export interface Task {
   category: string;
   assignedTo: number;
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  status: 'pending' | 'assigned_to_director' | 'assigned_to_chairman' | 'assigned_to_employee' | 'in_progress' | 'completed_by_employee' | 'pending_director_approval' | 'pending_admin_approval' | 'completed' | 'paused' | 'rejected';
+  status: 'pending' | 'assigned_to_director' | 'assigned_to_chairman' | 'assigned_to_employee' | 'in_progress' | 'completed_by_employee' | 'pending_director_approval' | 'pending_admin_approval' | 'pending_chairman_approval' | 'completed' | 'paused' | 'rejected';
   approvalStatus?: 'pending_approval' | 'approved' | 'rejected';
   dueDate: string;
   createdAt: string;
@@ -48,7 +48,7 @@ export interface Task {
   assignedDirector?: number; // Director assigned by master admin
   assignedEmployee?: number; // Employee assigned by director
   approvalChain: TaskApproval[]; // Chain of approvals
-  currentApprovalLevel: 'none' | 'director' | 'admin'; // Who needs to approve next
+  currentApprovalLevel: 'none' | 'director' | 'admin' | 'chairman'; // Who needs to approve next
   rejectionReason?: string; // Reason for rejection
 }
 

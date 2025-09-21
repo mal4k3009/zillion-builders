@@ -300,6 +300,7 @@ export const taskStatuses = [
   { id: 'completed_by_employee', name: 'Completed by Employee', color: '#84CC16' },
   { id: 'pending_director_approval', name: 'Pending Director Approval', color: '#F97316' },
   { id: 'pending_admin_approval', name: 'Pending Admin Approval', color: '#EF4444' },
+  { id: 'pending_chairman_approval', name: 'Pending Chairman Approval', color: '#DC2626' },
   { id: 'completed', name: 'Completed', color: '#10B981' },
   { id: 'rejected', name: 'Rejected', color: '#DC2626' },
   { id: 'paused', name: 'Paused', color: '#8B5CF6' }
