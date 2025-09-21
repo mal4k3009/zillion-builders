@@ -117,6 +117,9 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       if (state.currentUser?.role === 'master' && state.currentUser?.designation === 'chairman') {
         additionalFields.skipDirectorApproval = true;
         additionalFields.directChairmanApproval = true;
+      } else if (state.currentUser?.role === 'director') {
+        // If director assigns to employee, set the director as the assigned director
+        additionalFields.assignedDirector = state.currentUser.id;
       }
     }
     
@@ -409,8 +412,8 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden">
-        <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
+        <div className="flex items-center justify-between p-3 sm:p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 dark:text-white truncate">
             {mode === 'create' ? 'Create New Task' : mode === 'edit' ? 'Edit Task' : 'Task Details'}
           </h2>
           <button
@@ -421,7 +424,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
           </button>
         </div>
 
-        <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-120px)]">
+        <div className="p-3 sm:p-4 lg:p-6 overflow-y-auto max-h-[calc(95vh-100px)] sm:max-h-[calc(90vh-120px)]">
           {mode === 'view' ? (
             <div className="space-y-4 sm:space-y-6">
               <div>
@@ -438,7 +441,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Category
                   </label>
-                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white">
+                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white truncate">
                     {task?.category || 'No category assigned'}
                   </span>
                 </div>
@@ -456,8 +459,8 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Status
                   </label>
-                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white capitalize flex items-center gap-2">
-                    {task?.status}
+                  <span className="text-xs sm:text-sm text-gray-900 dark:text-white capitalize flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                    <span>{task?.status}</span>
                     {task?.status === 'paused' && task?.pausedAt && (
                       <span className="text-xs text-purple-600 dark:text-purple-400">
                         (Paused on {formatDate(task.pausedAt)})
@@ -478,7 +481,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   </div>
                 </div>
 
-                <div>
+                <div className="sm:col-span-2">
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     Due Date
                   </label>
@@ -577,7 +580,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
               )}
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 lg:space-y-6">
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Task Title
@@ -586,7 +589,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm lg:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter task title"
                   required
                 />
@@ -600,12 +603,12 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm lg:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   placeholder="Enter task description (optional)"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Project
@@ -613,7 +616,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   <select
                     value={formData.projectId}
                     onChange={(e) => setFormData({ ...formData, projectId: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm lg:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Select Project (Optional)</option>
                     {projects.map(project => (
@@ -631,7 +634,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   <select
                     value={formData.userCategoryId}
                     onChange={(e) => setFormData({ ...formData, userCategoryId: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm lg:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="">Select Category (Optional)</option>
                     {userCategories.map(category => (
@@ -643,7 +646,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Assign To
@@ -651,7 +654,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   <select
                     value={formData.assignedTo}
                     onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm lg:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     required
                   >
                     <option value="">Select User</option>
@@ -670,7 +673,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   <select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value as Task['priority'] })}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm lg:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     required
                   >
                     {priorityLevels.map(priority => (
@@ -690,7 +693,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                     <select
                       value={formData.status}
                       onChange={(e) => handleStatusChange(e.target.value)}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="w-full px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm lg:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
                     >
                       {taskStatuses.map(status => (
@@ -710,17 +713,17 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                     type="datetime-local"
                     value={formData.dueDate}
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-full px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm lg:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     required
                   />
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 pt-4 sm:pt-6">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 lg:gap-4 pt-3 sm:pt-4 lg:pt-6">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="w-full sm:w-auto px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-xs sm:text-sm lg:text-base text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
@@ -730,7 +733,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                   <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       type="submit"
-                      className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-xs sm:text-sm lg:text-base bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
                       <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                       Create Task
@@ -746,7 +749,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                         };
                         handleSubmitWithApproval(submitData);
                       }}
-                      className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                      className="w-full sm:w-auto px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-xs sm:text-sm lg:text-base bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
                     >
                       <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                       Submit for Approval
@@ -755,7 +758,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                 ) : (
                   <button
                     type="submit"
-                    className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 text-sm sm:text-base bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto px-3 sm:px-4 lg:px-6 py-2 sm:py-3 text-xs sm:text-sm lg:text-base bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
                   >
                     <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
                     {mode === 'create' ? 'Create Task' : 'Update Task'}

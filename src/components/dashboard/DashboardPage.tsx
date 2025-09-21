@@ -6,8 +6,8 @@ import { ApprovalSection } from './ApprovalSection';
 
 export function DashboardPage() {
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
+    <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+      <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">
         Dashboard
       </h1>
       
@@ -16,12 +16,12 @@ export function DashboardPage() {
       
       <DashboardCards />
       
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-        <div className="xl:col-span-2 space-y-4 sm:space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+        <div className="xl:col-span-2 space-y-3 sm:space-y-4 lg:space-y-6">
           <TaskChart />
           <RecentTasks />
         </div>
-        <div>
+        <div className="xl:col-span-1">
           <ActivityFeed />
         </div>
       </div>

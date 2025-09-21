@@ -74,55 +74,55 @@ export function CalendarPage() {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Calendar</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
+        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white">Calendar</h1>
         {state.currentUser?.role === 'master' && (
           <button
             onClick={() => setShowTaskModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-xs sm:text-sm lg:text-base w-fit"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
             New Task
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Calendar */}
-        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="p-3 sm:p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
               </h3>
-              <div className="flex gap-2">
+              <div className="flex gap-1 sm:gap-2">
                 <button
                   onClick={() => navigateMonth('prev')}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
-                  <ChevronLeft className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600 dark:text-gray-400" />
                 </button>
                 <button
                   onClick={() => setCurrentDate(new Date())}
-                  className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                  className="px-2 sm:px-3 py-1 text-xs sm:text-sm text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                 >
                   Today
                 </button>
                 <button
                   onClick={() => navigateMonth('next')}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 >
-                  <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                  <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
             </div>
           </div>
 
-          <div className="p-6">
-            <div className="grid grid-cols-7 gap-1 mb-4">
+          <div className="p-3 sm:p-4 lg:p-6">
+            <div className="grid grid-cols-7 gap-1 mb-3 sm:mb-4">
               {dayNames.map(day => (
-                <div key={day} className="p-2 text-center text-sm font-medium text-gray-500 dark:text-gray-400">
+                <div key={day} className="p-1 sm:p-2 text-center text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
                   {day}
                 </div>
               ))}
@@ -134,7 +134,7 @@ export function CalendarPage() {
                   key={index}
                   onClick={() => setSelectedDate(day.date)}
                   className={`
-                    p-2 min-h-[80px] rounded-lg text-left border transition-all hover:border-blue-300
+                    p-1 sm:p-2 min-h-[60px] sm:min-h-[80px] rounded-lg text-left border transition-all hover:border-blue-300
                     ${day.isCurrentMonth 
                       ? 'bg-white dark:bg-gray-700/50 border-gray-200 dark:border-gray-600' 
                       : 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-400'
@@ -143,16 +143,16 @@ export function CalendarPage() {
                     ${selectedDate?.toDateString() === day.date.toDateString() ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30' : ''}
                   `}
                 >
-                  <div className={`text-sm font-medium mb-1 ${day.isToday ? 'text-blue-600 dark:text-blue-400' : ''}`}>
+                  <div className={`text-xs sm:text-sm font-medium mb-1 ${day.isToday ? 'text-blue-600 dark:text-blue-400' : ''}`}>
                     {day.date.getDate()}
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-0.5 sm:space-y-1">
                     {day.tasks.slice(0, 2).map(task => {
                       const priority = priorityLevels.find(p => p.id === task.priority);
                       return (
                         <div
                           key={task.id}
-                          className="text-xs p-1 rounded truncate"
+                          className="text-xs p-0.5 sm:p-1 rounded truncate"
                           style={{ backgroundColor: `${priority?.color}20`, color: priority?.color }}
                           title={task.title}
                         >
@@ -173,9 +173,9 @@ export function CalendarPage() {
         </div>
 
         {/* Selected Date Tasks */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="bg-white dark:bg-gray-800 rounded-lg sm:rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="p-3 sm:p-4 lg:p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white">
               {selectedDate 
                 ? selectedDate.toLocaleDateString('en-US', { 
                     weekday: 'long', 
@@ -187,9 +187,9 @@ export function CalendarPage() {
             </h3>
           </div>
 
-          <div className="p-6">
+          <div className="p-3 sm:p-4 lg:p-6">
             {selectedDateTasks.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 {selectedDateTasks.map(task => {
                   const assignedUser = state.users.find(u => u.id === task.assignedTo);
                   const priority = priorityLevels.find(p => p.id === task.priority);
@@ -198,22 +198,22 @@ export function CalendarPage() {
                   return (
                     <div
                       key={task.id}
-                      className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border-l-4 border-l-blue-500"
+                      className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border-l-4 border-l-blue-500"
                     >
-                      <h4 className="font-medium text-gray-900 dark:text-white mb-1">
+                      <h4 className="font-medium text-gray-900 dark:text-white mb-1 text-sm sm:text-base">
                         {task.title}
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2">
                         {assignedUser?.name} • {task.category}
                       </p>
-                      <div className="flex items-center justify-between">
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium`} style={{ 
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium w-fit`} style={{ 
                           backgroundColor: `${priority?.color}20`, 
                           color: priority?.color 
                         }}>
                           {priority?.name}
                         </div>
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium w-fit ${
                           task.status === 'completed' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
                           task.status === 'in-progress' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
                           'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400'
@@ -229,9 +229,9 @@ export function CalendarPage() {
                 })}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <CalendarIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+              <div className="text-center py-6 sm:py-8">
+                <CalendarIcon className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                   {selectedDate ? 'No tasks for this date' : 'Select a date to view tasks'}
                 </p>
               </div>

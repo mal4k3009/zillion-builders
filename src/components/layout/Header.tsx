@@ -26,15 +26,15 @@ export function Header() {
 
   return (
     <>
-      <header className="bg-pure-white dark:bg-soft-black border-b border-light-gray dark:border-deep-charcoal h-14 sm:h-16 flex items-center justify-between px-3 sm:px-4 md:px-6 relative z-30">
-        <div className="flex items-center gap-2 sm:gap-4">
+      <header className="bg-pure-white dark:bg-soft-black border-b border-light-gray dark:border-deep-charcoal h-14 sm:h-16 flex items-center justify-between px-2 sm:px-4 md:px-6 relative z-30">
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-4 min-w-0 flex-1">
           <button
             onClick={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
-            className="lg:hidden p-1.5 sm:p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors"
+            className="lg:hidden p-1.5 sm:p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors flex-shrink-0"
           >
             {state.sidebarOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5 text-deep-charcoal dark:text-pure-white" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-deep-charcoal dark:text-pure-white" />}
           </button>
-          <h1 className="text-base sm:text-lg md:text-xl font-semibold text-deep-charcoal dark:text-pure-white truncate">
+          <h1 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold text-deep-charcoal dark:text-pure-white truncate min-w-0">
             <span className="hidden xs:inline">
               {state.currentUser?.role === 'master' ? 'Master Dashboard' : `${state.currentUser?.name.split(' ')[0]} Dashboard`}
             </span>
@@ -44,12 +44,13 @@ export function Header() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
+        <div className="flex items-center gap-1 sm:gap-2 md:gap-3 lg:gap-4 flex-shrink-0">
           {/* <NotificationStatus /> */}
           
           <button
             onClick={() => dispatch({ type: 'TOGGLE_THEME' })}
             className="p-1.5 sm:p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors"
+            aria-label="Toggle theme"
           >
             {state.theme === 'light' ? 
               <Moon className="w-4 h-4 sm:w-5 sm:h-5 text-medium-gray" /> : 
@@ -61,10 +62,11 @@ export function Header() {
             <button
               onClick={() => setShowChat(!showChat)}
               className="p-1.5 sm:p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors relative"
+              aria-label="Messages"
             >
               <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-medium-gray" />
               {unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 bg-brand-gold text-pure-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-brand-gold text-pure-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center min-w-[16px] sm:min-w-[20px]">
                   {unreadMessages > 9 ? '9+' : unreadMessages}
                 </span>
               )}
@@ -75,10 +77,11 @@ export function Header() {
             <button
               onClick={() => setShowNotifications(!showNotifications)}
               className="p-1.5 sm:p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors relative"
+              aria-label="Notifications"
             >
               <Bell className="w-4 h-4 sm:w-5 sm:h-5 text-medium-gray" />
               {unreadNotifications > 0 && (
-                <span className="absolute -top-1 -right-1 bg-brand-gold text-pure-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-brand-gold text-pure-white text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center min-w-[16px] sm:min-w-[20px]">
                   {unreadNotifications > 9 ? '9+' : unreadNotifications}
                 </span>
               )}
@@ -89,17 +92,18 @@ export function Header() {
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors"
+              aria-label="User menu"
             >
-              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-brand-gold rounded-full flex items-center justify-center">
+              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-brand-gold rounded-full flex items-center justify-center flex-shrink-0">
                 <User className="w-3 h-3 sm:w-4 sm:h-4 text-pure-white" />
               </div>
-              <span className="text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white hidden sm:block">
+              <span className="text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white hidden sm:block truncate max-w-20 lg:max-w-none">
                 {state.currentUser?.name}
               </span>
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-40 sm:w-48 bg-pure-white dark:bg-dark-gray rounded-lg shadow-lg border border-light-gray dark:border-soft-black py-2 z-50">
+              <div className="absolute right-0 top-full mt-2 w-48 sm:w-56 bg-pure-white dark:bg-dark-gray rounded-lg shadow-lg border border-light-gray dark:border-soft-black py-2 z-50">
                 <div className="px-3 sm:px-4 py-2 border-b border-light-gray dark:border-soft-black">
                   <p className="text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white truncate">{state.currentUser?.name}</p>
                   <p className="text-xs text-medium-gray truncate">{state.currentUser?.email}</p>

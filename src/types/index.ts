@@ -22,6 +22,7 @@ export interface TaskApproval {
   status: 'pending' | 'approved' | 'rejected';
   approvedAt?: string;
   rejectionReason?: string;
+  reapprovalReason?: string;
   createdAt: string;
 }
 
@@ -52,6 +53,7 @@ export interface Task {
   approvalChain: TaskApproval[]; // Chain of approvals
   currentApprovalLevel: 'none' | 'director' | 'admin' | 'chairman'; // Who needs to approve next
   rejectionReason?: string; // Reason for rejection
+  reapprovalReason?: string; // Reason for reapproval submission
 }
 
 export interface TaskComment {

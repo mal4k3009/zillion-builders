@@ -89,98 +89,99 @@ export function AnalyticsPage() {
   const productivityMetrics = getProductivityMetrics();
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-deep-charcoal dark:text-pure-white">Analytics & Reports</h1>
-        <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-4">
+        <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-deep-charcoal dark:text-pure-white">Analytics & Reports</h1>
+        <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg transition-colors text-xs sm:text-sm lg:text-base w-fit">
           Export Report
         </button>
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className="bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-3 sm:p-4 lg:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-medium-gray">Tasks This Week</p>
-              <p className="text-3xl font-bold text-deep-charcoal dark:text-pure-white">{productivityMetrics.tasksThisWeek}</p>
-              <div className="flex items-center mt-2">
-                <span className={`text-sm font-medium ${productivityMetrics.weeklyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-medium-gray">Tasks This Week</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-deep-charcoal dark:text-pure-white">{productivityMetrics.tasksThisWeek}</p>
+              <div className="flex items-center mt-1 sm:mt-2">
+                <span className={`text-xs sm:text-sm font-medium ${productivityMetrics.weeklyGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {productivityMetrics.weeklyGrowth >= 0 ? '+' : ''}{productivityMetrics.weeklyGrowth}%
                 </span>
-                <span className="text-sm text-medium-gray ml-1">vs last week</span>
+                <span className="text-xs sm:text-sm text-medium-gray ml-1 hidden sm:inline">vs last week</span>
+                <span className="text-xs text-medium-gray ml-1 sm:hidden">vs last wk</span>
               </div>
             </div>
-            <div className="bg-brand-gold p-3 rounded-xl">
-              <CheckSquare className="w-6 h-6 text-pure-white" />
+            <div className="bg-brand-gold p-2 sm:p-3 rounded-lg sm:rounded-xl flex-shrink-0">
+              <CheckSquare className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-pure-white" />
             </div>
           </div>
         </div>
 
-        <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
+        <div className="bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-3 sm:p-4 lg:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-medium-gray">Completion Rate</p>
-              <p className="text-3xl font-bold text-deep-charcoal dark:text-pure-white">{productivityMetrics.averageCompletion}%</p>
-              <div className="w-full bg-light-gray dark:bg-soft-black rounded-full h-2 mt-2">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-medium-gray">Completion Rate</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-deep-charcoal dark:text-pure-white">{productivityMetrics.averageCompletion}%</p>
+              <div className="w-full bg-light-gray dark:bg-soft-black rounded-full h-1.5 sm:h-2 mt-1 sm:mt-2">
                 <div 
-                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                  className="bg-green-500 h-1.5 sm:h-2 rounded-full transition-all duration-300"
                   style={{ width: `${productivityMetrics.averageCompletion}%` }}
                 />
               </div>
             </div>
-            <div className="bg-green-500 p-3 rounded-xl">
-              <Target className="w-6 h-6 text-pure-white" />
+            <div className="bg-green-500 p-2 sm:p-3 rounded-lg sm:rounded-xl flex-shrink-0">
+              <Target className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-pure-white" />
             </div>
           </div>
         </div>
 
-        <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
+        <div className="bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-3 sm:p-4 lg:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-medium-gray">Active Admins</p>
-              <p className="text-3xl font-bold text-deep-charcoal dark:text-pure-white">{productivityMetrics.activeUsers}</p>
-              <p className="text-sm text-medium-gray mt-2">Sub administrators</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-medium-gray">Active Admins</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-deep-charcoal dark:text-pure-white">{productivityMetrics.activeUsers}</p>
+              <p className="text-xs sm:text-sm text-medium-gray mt-1 sm:mt-2">Sub administrators</p>
             </div>
-            <div className="bg-purple-500 p-3 rounded-xl">
-              <Users className="w-6 h-6 text-pure-white" />
+            <div className="bg-purple-500 p-2 sm:p-3 rounded-lg sm:rounded-xl flex-shrink-0">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-pure-white" />
             </div>
           </div>
         </div>
 
-        <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
+        <div className="bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-3 sm:p-4 lg:p-6">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-medium-gray">Total Tasks</p>
-              <p className="text-3xl font-bold text-deep-charcoal dark:text-pure-white">{state.tasks.length}</p>
-              <p className="text-sm text-medium-gray mt-2">All time</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs sm:text-sm font-medium text-medium-gray">Total Tasks</p>
+              <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-deep-charcoal dark:text-pure-white">{state.tasks.length}</p>
+              <p className="text-xs sm:text-sm text-medium-gray mt-1 sm:mt-2">All time</p>
             </div>
-            <div className="bg-brand-gold p-3 rounded-xl">
-              <BarChart3 className="w-6 h-6 text-pure-white" />
+            <div className="bg-brand-gold p-2 sm:p-3 rounded-lg sm:rounded-xl flex-shrink-0">
+              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-pure-white" />
             </div>
           </div>
         </div>
       </div>
 
       {/* User Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
-          <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-6">User Performance</h3>
-          <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <div className="bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-3 sm:p-4 lg:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-3 sm:mb-4 lg:mb-6">User Performance</h3>
+          <div className="space-y-4 sm:space-y-6">
             {userStats.map((userData) => (
               <div key={userData.userId}>
-                <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-deep-charcoal dark:text-pure-white">{userData.userName}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 capitalize">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-2 gap-1 sm:gap-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white truncate">{userData.userName}</span>
+                    <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 capitalize flex-shrink-0">
                       {userData.userRole}
                     </span>
                   </div>
-                  <span className="text-sm text-medium-gray">{userData.completionRate}% completed</span>
+                  <span className="text-xs sm:text-sm text-medium-gray">{userData.completionRate}% completed</span>
                 </div>
-                <div className="w-full bg-light-gray dark:bg-soft-black rounded-full h-3">
+                <div className="w-full bg-light-gray dark:bg-soft-black rounded-full h-2 sm:h-3">
                   <div 
-                    className="h-3 rounded-full transition-all duration-300"
+                    className="h-2 sm:h-3 rounded-full transition-all duration-300"
                     style={{ 
                       width: `${userData.completionRate}%`,
                       backgroundColor: userData.color
@@ -196,25 +197,25 @@ export function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-6">
-          <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-6">Priority Distribution</h3>
-          <div className="space-y-4">
+        <div className="bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-3 sm:p-4 lg:p-6">
+          <h3 className="text-base sm:text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-3 sm:mb-4 lg:mb-6">Priority Distribution</h3>
+          <div className="space-y-3 sm:space-y-4">
             {priorityDistribution.map((priority) => {
               const percentage = state.tasks.length > 0 ? Math.round((priority.count / state.tasks.length) * 100) : 0;
               return (
                 <div key={priority.priority} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                     <div 
-                      className="w-4 h-4 rounded-full"
+                      className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0"
                       style={{ backgroundColor: priority.color }}
                     />
-                    <span className="text-sm font-medium text-deep-charcoal dark:text-pure-white capitalize">
+                    <span className="text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white capitalize truncate">
                       {priority.priority}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-medium-gray">{percentage}%</span>
-                    <span className="text-sm font-medium text-deep-charcoal dark:text-pure-white">{priority.count}</span>
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <span className="text-xs sm:text-sm text-medium-gray">{percentage}%</span>
+                    <span className="text-xs sm:text-sm font-medium text-deep-charcoal dark:text-pure-white">{priority.count}</span>
                   </div>
                 </div>
               );

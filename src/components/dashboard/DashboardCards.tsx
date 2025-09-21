@@ -122,12 +122,12 @@ export function DashboardCards() {
 
   return (
     <>
-      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
+      <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
         {cards.map((card, index) => (
           <div 
             key={index} 
             onClick={() => card.clickable ? handleCardClick(card.tasks, card.title) : undefined}
-            className={`bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-4 sm:p-6 transition-all duration-200 ${
+            className={`bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-3 sm:p-4 lg:p-6 transition-all duration-200 ${
               card.clickable ? 'hover:shadow-md cursor-pointer hover:scale-105' : 'hover:shadow-md'
             }`}
           >
@@ -136,7 +136,7 @@ export function DashboardCards() {
                 <p className="text-xs sm:text-sm font-medium text-medium-gray mb-1 truncate">
                   {card.title}
                 </p>
-                <p className="text-2xl sm:text-3xl font-bold text-deep-charcoal dark:text-pure-white">
+                <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-deep-charcoal dark:text-pure-white">
                   {card.value}
                 </p>
                 <div className="flex items-center mt-1 sm:mt-2">
@@ -150,7 +150,7 @@ export function DashboardCards() {
                 </div>
               </div>
               <div className={`${card.color === 'bg-blue-500' ? 'bg-brand-gold' : card.color} p-2 sm:p-3 rounded-lg sm:rounded-xl text-white flex-shrink-0`}>
-                <span className="w-4 h-4 sm:w-6 sm:h-6">{card.icon}</span>
+                <span className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6">{card.icon}</span>
               </div>
             </div>
           </div>

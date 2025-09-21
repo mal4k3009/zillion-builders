@@ -65,9 +65,9 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed right-2 sm:right-6 top-16 sm:top-20 w-72 sm:w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50">
-      <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700">
-        <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
+    <div className="fixed right-2 sm:right-4 lg:right-6 top-16 sm:top-20 w-80 sm:w-96 lg:w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[80vh] flex flex-col">
+      <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
         <button
           onClick={onClose}
           className="p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -76,7 +76,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         </button>
       </div>
 
-      <div className="max-h-80 sm:max-h-96 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto min-h-0">
         {userNotifications.length > 0 ? (
           userNotifications.map((notification) => (
             <div
@@ -88,7 +88,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
               <div className="flex items-start gap-2 sm:gap-3">
                 <div className="text-sm sm:text-lg flex-shrink-0">{getNotificationIcon(notification.type)}</div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white truncate">
                         {notification.title}
@@ -121,7 +121,7 @@ export function NotificationPanel({ isOpen, onClose }: NotificationPanelProps) {
         )}
       </div>
 
-      <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
         <button 
           onClick={onClose}
           className="w-full text-xs sm:text-sm text-blue-600 hover:text-blue-700 font-medium"

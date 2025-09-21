@@ -50,28 +50,28 @@ export function ActivityFeed() {
     .slice(0, 10);
 
   return (
-    <div className="bg-pure-white dark:bg-dark-gray rounded-xl shadow-sm border border-light-gray dark:border-soft-black">
-      <div className="p-6 border-b border-light-gray dark:border-soft-black">
-        <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white">Recent Activity</h3>
+    <div className="bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black">
+      <div className="p-3 sm:p-4 lg:p-6 border-b border-light-gray dark:border-soft-black">
+        <h3 className="text-base sm:text-lg font-semibold text-deep-charcoal dark:text-pure-white">Recent Activity</h3>
       </div>
-      <div className="p-6">
-        <div className="space-y-4">
+      <div className="p-3 sm:p-4 lg:p-6">
+        <div className="space-y-3 sm:space-y-4">
           {recentActivities.map((activity) => {
             const user = state.users.find(u => u.id === activity.userId);
             return (
-              <div key={activity.id} className="flex items-start gap-3">
-                <div className={`p-2 rounded-lg ${getActivityColor(activity.type)}`}>
-                  {getActivityIcon(activity.type)}
+              <div key={activity.id} className="flex items-start gap-2 sm:gap-3">
+                <div className={`p-1.5 sm:p-2 rounded-lg ${getActivityColor(activity.type)} flex-shrink-0`}>
+                  <span className="w-3 h-3 sm:w-4 sm:h-4">{getActivityIcon(activity.type)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-deep-charcoal dark:text-pure-white">
+                  <p className="text-xs sm:text-sm text-deep-charcoal dark:text-pure-white line-clamp-2">
                     {activity.description}
                   </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-medium-gray">
+                  <div className="flex items-center gap-1 sm:gap-2 mt-1">
+                    <span className="text-xs text-medium-gray truncate">
                       {user?.name || 'System'}
                     </span>
-                    <span className="text-xs text-medium-gray">•</span>
+                    <span className="text-xs text-medium-gray hidden sm:inline">•</span>
                     <span className="text-xs text-medium-gray">
                       {formatTimeAgo(activity.timestamp)}
                     </span>

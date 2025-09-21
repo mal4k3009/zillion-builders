@@ -30,6 +30,9 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const [showActions, setShowActions] = useState(false);
   const [showRejectionModal, setShowRejectionModal] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [showReapprovalModal, setShowReapprovalModal] = useState(false);
+  const [reapprovalReason, setReapprovalReason] = useState('');
+  const [isSubmittingReapproval, setIsSubmittingReapproval] = useState(false);
   
   const assignedUser = state.users.find(u => u.id === task.assignedTo);
   const priority = priorityLevels.find(p => p.id === task.priority);
@@ -56,6 +59,12 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const canApproveAsChairman = (currentUserRole === 'chairman' || (currentUserRole === 'master' && state.currentUser?.designation === 'chairman')) && 
     task.status === 'pending_chairman_approval' && 
     task.approvalChain.some(approval => approval.approverRole === 'chairman' && approval.approverUserId === currentUserId && approval.status === 'pending');
+  
+  // Check if current user can submit for reapproval (rejected tasks)
+  const canSubmitForReapproval = task.status === 'rejected' && (
+    (currentUserRole === 'employee' && task.assignedTo === currentUserId) ||
+    (currentUserRole === 'director' && (task.assignedDirector === currentUserId || task.createdBy === currentUserId))
+  );
   
   // Get current pending approval info
   const getPendingApprovalInfo = () => {
@@ -171,6 +180,34 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
       // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
       console.error('Error processing approval:', error);
+    }
+  };
+
+  const handleSubmitForReapproval = async () => {
+    console.log('🔄 Submit for reapproval clicked', { reapprovalReason: reapprovalReason.trim() });
+    
+    if (!reapprovalReason.trim()) {
+      console.warn('❌ No reapproval reason provided');
+      return; // Don't submit if no reason provided
+    }
+    
+    setIsSubmittingReapproval(true);
+    try {
+      console.log('📤 Submitting reapproval for task:', task.id);
+      await tasksService.submitForReapproval(task.id, reapprovalReason.trim());
+      console.log('✅ Reapproval submitted successfully');
+      
+      // Close modal and reset state immediately
+      setShowReapprovalModal(false);
+      setReapprovalReason('');
+      setIsSubmittingReapproval(false);
+      
+      // Update will be reflected via real-time listener, no reload needed
+    } catch (error) {
+      console.error('❌ Error submitting for reapproval:', error);
+      // Show error to user and keep modal open
+      alert('Failed to submit for reapproval. Please try again.');
+      setIsSubmittingReapproval(false);
     }
   };
 
@@ -316,6 +353,18 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
         </div>
       )}
 
+      {/* Reapproval Reason */}
+      {task.reapprovalReason && (
+        <div className="mb-3 sm:mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-400">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-blue-600" />
+            <span className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
+              Reapproval Request: {task.reapprovalReason}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Assignment and Approval Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
         <div className="flex items-center gap-3 sm:gap-4">
@@ -384,6 +433,17 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
                 Reject
               </button>
             </>
+          )}
+
+          {/* Submit for Reapproval Button */}
+          {canSubmitForReapproval && (
+            <button
+              onClick={() => setShowReapprovalModal(true)}
+              className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              <Clock className="w-3 h-3" />
+              Submit for Reapproval
+            </button>
           )}
 
           {/* Assignment Dropdowns for Master and Directors */}
@@ -489,6 +549,63 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reapproval Modal */}
+      {showReapprovalModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-pure-white dark:bg-dark-gray rounded-lg p-6 w-96 max-w-md">
+            <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-4">
+              Reason for reapproval:
+            </h3>
+            <textarea
+              value={reapprovalReason}
+              onChange={(e) => setReapprovalReason(e.target.value)}
+              className="w-full p-3 border border-light-gray dark:border-soft-black rounded-lg bg-pure-white dark:bg-dark-gray text-deep-charcoal dark:text-pure-white resize-none"
+              rows={4}
+              placeholder="Enter reason for reapproval..."
+              disabled={isSubmittingReapproval}
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={handleSubmitForReapproval}
+                disabled={!reapprovalReason.trim() || isSubmittingReapproval}
+                className="flex-1 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {isSubmittingReapproval ? 'Submitting...' : 'Submit for Reapproval'}
+              </button>
+              <button
+                onClick={() => {
+                  if (!isSubmittingReapproval) {
+                    setShowReapprovalModal(false);
+                    setReapprovalReason('');
+                    setIsSubmittingReapproval(false);
+                  }
+                }}
+                disabled={isSubmittingReapproval}
+                className="flex-1 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+            </div>
+            {/* Force close button if stuck */}
+            {isSubmittingReapproval && (
+              <div className="mt-2 text-center">
+                <button
+                  onClick={() => {
+                    console.log('🔴 Force closing reapproval modal');
+                    setShowReapprovalModal(false);
+                    setReapprovalReason('');
+                    setIsSubmittingReapproval(false);
+                  }}
+                  className="text-xs text-red-500 hover:text-red-700 underline"
+                >
+                  Force Close
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

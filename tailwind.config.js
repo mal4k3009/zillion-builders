@@ -22,6 +22,20 @@ export default {
         'light-gray': '#E5E5E5',
         'medium-gray': '#666666',
         'dark-gray': '#3A4B5C',
+      },
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
+      },
+      fontSize: {
+        '2xs': ['0.625rem', { lineHeight: '0.75rem' }],
+      },
+      minHeight: {
+        '44': '11rem',
+      },
+      maxHeight: {
+        'screen-90': '90vh',
+        'screen-80': '80vh',
       }
     },
   },

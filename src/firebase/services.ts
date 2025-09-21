@@ -318,10 +318,20 @@ export const tasksService = {
       });
     } else {
       // Normal workflow: create approval entry for director
+      // If no assignedDirector, try to find the director who created the task or assigned it
+      let directorId = task.assignedDirector;
+      if (!directorId && task.createdBy) {
+        const users = await usersService.getAll();
+        const creator = users.find(u => u.id === task.createdBy);
+        if (creator && creator.role === 'director') {
+          directorId = creator.id;
+        }
+      }
+      
       const approvalEntry = {
         id: `${taskId}_director_${Date.now()}`,
         taskId,
-        approverUserId: task.assignedDirector || 0,
+        approverUserId: directorId || task.createdBy,
         approverRole: 'director' as const,
         status: 'pending' as const,
         createdAt: new Date().toISOString()
@@ -484,6 +494,67 @@ export const tasksService = {
       );
       return pendingApproval?.approverUserId === userId;
     });
+  },
+
+  async submitForReapproval(taskId: string, reapprovalReason: string): Promise<void> {
+    console.log('🔄 submitForReapproval called', { taskId, reapprovalReason });
+    
+    try {
+      const docRef = doc(db, 'tasks', taskId);
+      const task = await this.getById(taskId);
+      
+      console.log('📋 Task retrieved:', { task: task ? { id: task.id, status: task.status } : null });
+      
+      if (!task) {
+        console.error('❌ Task not found:', taskId);
+        throw new Error('Task not found');
+      }
+      if (task.status !== 'rejected') {
+        console.error('❌ Task is not in rejected status:', task.status);
+        throw new Error('Task is not in rejected status');
+      }
+      
+      // Reset task to pending director approval with the reapproval reason
+      let directorId = task.assignedDirector;
+      if (!directorId && task.createdBy) {
+        const users = await usersService.getAll();
+        const creator = users.find(u => u.id === task.createdBy);
+        if (creator && creator.role === 'director') {
+          directorId = creator.id;
+        }
+      }
+      
+      console.log('👨‍💼 Director assigned for reapproval:', directorId);
+      
+      const approvalEntry = {
+        id: `${taskId}_director_reapproval_${Date.now()}`,
+        taskId,
+        approverUserId: directorId || task.createdBy,
+        approverRole: 'director' as const,
+        status: 'pending' as const,
+        createdAt: new Date().toISOString(),
+        reapprovalReason
+      };
+
+      console.log('📝 Updating task document with reapproval data');
+      
+      // Prepare update data without undefined fields
+      const updateData = {
+        status: 'pending_director_approval' as const,
+        currentApprovalLevel: 'director' as const,
+        approvalChain: [approvalEntry],
+        reapprovalReason,
+        updatedAt: serverTimestamp(),
+        ...(task.rejectionReason !== undefined && { rejectionReason: null })
+      };
+      
+      await updateDoc(docRef, updateData);
+      
+      console.log('✅ Task reapproval submitted successfully');
+    } catch (error) {
+      console.error('❌ Error in submitForReapproval:', error);
+      throw error; // Re-throw to let the UI handle it
+    }
   }
 };
 
@@ -740,44 +811,48 @@ export const notificationsService = {
   },
 
   async getByUser(userId: number): Promise<Notification[]> {
+    // Use simpler query to avoid index requirements
     const q = query(
       collection(db, 'notifications'),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', userId)
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return { 
-        id: doc.id, 
-        ...data,
-        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt
-      } as Notification;
-    });
+    return querySnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          ...data,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt
+        } as Notification;
+      })
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Sort client-side
   },
 
   // Real-time listener for user notifications
   onUserNotificationsSnapshot(userId: number, callback: (notifications: Notification[]) => void) {
     console.log(`🔔 Setting up notification listener for User ${userId}`);
     
+    // Use simpler query to avoid index requirements
     const q = query(
       collection(db, 'notifications'),
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', userId)
     );
     
     return onSnapshot(q, (querySnapshot) => {
       try {
         console.log(`📨 Notification update received! ${querySnapshot.docs.length} notifications found`);
         
-        const notifications = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          return { 
-            id: doc.id, 
-            ...data,
-            createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt
-          } as Notification;
-        });
+        const notifications = querySnapshot.docs
+          .map(doc => {
+            const data = doc.data();
+            return { 
+              id: doc.id, 
+              ...data,
+              createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt
+            } as Notification;
+          })
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); // Sort client-side
         
         callback(notifications);
       } catch (error) {
