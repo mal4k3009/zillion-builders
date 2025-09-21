@@ -28,6 +28,8 @@ interface TaskCardProps {
 export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const { state, updateTask: updateTaskInContext, createActivity } = useApp();
   const [showActions, setShowActions] = useState(false);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
   
   const assignedUser = state.users.find(u => u.id === task.assignedTo);
   const priority = priorityLevels.find(p => p.id === task.priority);
@@ -45,7 +47,7 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   // Determine what actions the current user can take
   const currentUserId = state.currentUser?.id || 0;
   const currentUserRole = state.currentUser?.role;
-  const canAssignToDirector = currentUserRole === 'master' && task.status === 'pending';
+  const canAssignToDirector = currentUserRole === 'master' && task.status === 'pending' && !task.assignedDirector;
   const canAssignToEmployee = currentUserRole === 'director' && task.status === 'assigned_to_director';
   const canMarkInProgress = currentUserRole === 'employee' && task.status === 'assigned_to_employee' && task.assignedTo === currentUserId;
   const canMarkComplete = currentUserRole === 'employee' && task.status === 'in_progress' && task.assignedTo === currentUserId;
@@ -375,10 +377,7 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
                 Approve
               </button>
               <button
-                onClick={() => {
-                  const reason = prompt('Reason for rejection:');
-                  if (reason) handleApproval(false, reason);
-                }}
+                onClick={() => setShowRejectionModal(true)}
                 className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors"
               >
                 <XCircle className="w-3 h-3" />
@@ -452,6 +451,47 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
           )}
         </div>
       </div>
+
+      {/* Rejection Modal */}
+      {showRejectionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-pure-white dark:bg-dark-gray rounded-lg p-6 w-96 max-w-md">
+            <h3 className="text-lg font-semibold text-deep-charcoal dark:text-pure-white mb-4">
+              Reason for rejection:
+            </h3>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              className="w-full p-3 border border-light-gray dark:border-soft-black rounded-lg bg-pure-white dark:bg-dark-gray text-deep-charcoal dark:text-pure-white resize-none"
+              rows={4}
+              placeholder="Enter reason for rejection..."
+            />
+            <div className="flex gap-3 mt-4">
+              <button
+                onClick={() => {
+                  if (rejectionReason.trim()) {
+                    handleApproval(false, rejectionReason);
+                    setShowRejectionModal(false);
+                    setRejectionReason('');
+                  }
+                }}
+                className="flex-1 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => {
+                  setShowRejectionModal(false);
+                  setRejectionReason('');
+                }}
+                className="flex-1 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

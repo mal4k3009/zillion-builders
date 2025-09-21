@@ -291,22 +291,49 @@ export const tasksService = {
     
     if (!task) throw new Error('Task not found');
     
-    // Create approval entry for director
-    const approvalEntry = {
-      id: `${taskId}_director_${Date.now()}`,
-      taskId,
-      approverUserId: task.assignedDirector || 0,
-      approverRole: 'director' as const,
-      status: 'pending' as const,
-      createdAt: new Date().toISOString()
-    };
+    // Check if this task should go directly to chairman approval (skip director)
+    if (task.directChairmanApproval || task.skipDirectorApproval) {
+      // Find a chairman user to assign the approval to
+      const users = await usersService.getAll();
+      const chairmen = users.filter(u => u.role === 'chairman' || u.designation === 'chairman');
+      const chairman = chairmen.length > 0 
+        ? chairmen.sort((a, b) => b.id - a.id)[0] 
+        : users.find(u => u.role === 'master');
+      
+      // Create approval entry for chairman (skip director)
+      const chairmanApprovalEntry = {
+        id: `${taskId}_chairman_${Date.now()}`,
+        taskId,
+        approverUserId: chairman?.id || task.createdBy,
+        approverRole: 'chairman' as const,
+        status: 'pending' as const,
+        createdAt: new Date().toISOString()
+      };
 
-    await updateDoc(docRef, {
-      status: 'pending_director_approval',
-      currentApprovalLevel: 'director',
-      approvalChain: [approvalEntry],
-      updatedAt: serverTimestamp()
-    });
+      await updateDoc(docRef, {
+        status: 'pending_chairman_approval',
+        currentApprovalLevel: 'chairman',
+        approvalChain: [chairmanApprovalEntry],
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      // Normal workflow: create approval entry for director
+      const approvalEntry = {
+        id: `${taskId}_director_${Date.now()}`,
+        taskId,
+        approverUserId: task.assignedDirector || 0,
+        approverRole: 'director' as const,
+        status: 'pending' as const,
+        createdAt: new Date().toISOString()
+      };
+
+      await updateDoc(docRef, {
+        status: 'pending_director_approval',
+        currentApprovalLevel: 'director',
+        approvalChain: [approvalEntry],
+        updatedAt: serverTimestamp()
+      });
+    }
   },
 
   async approveByDirector(taskId: string, approved: boolean, rejectionReason?: string): Promise<void> {

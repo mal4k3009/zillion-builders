@@ -95,15 +95,40 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Find the assigned user to determine the appropriate status and workflow
+    const assignedUser = state.users.find(u => u.id === parseInt(formData.assignedTo));
+    if (!assignedUser) {
+      alert('Please select a valid user to assign the task to');
+      return;
+    }
+    
+    // Determine the appropriate status and additional fields based on assigned user role
+    let taskStatus = formData.status;
+    const additionalFields: Partial<Task> = {};
+    
+    if (assignedUser.role === 'director') {
+      taskStatus = 'assigned_to_director';
+      additionalFields.assignedDirector = assignedUser.id;
+    } else if (assignedUser.role === 'employee') {
+      taskStatus = 'assigned_to_employee';
+      additionalFields.assignedEmployee = assignedUser.id;
+      
+      // If chairman assigns directly to employee, set up for direct chairman approval
+      if (state.currentUser?.role === 'master' && state.currentUser?.designation === 'chairman') {
+        additionalFields.skipDirectorApproval = true;
+        additionalFields.directChairmanApproval = true;
+      }
+    }
+    
     // Build base task data without undefined fields
     const baseTaskData = {
       title: formData.title,
       category: formData.category || 'general',
       assignedTo: parseInt(formData.assignedTo),
       priority: formData.priority,
-      status: formData.status,
+      status: taskStatus,
       dueDate: formData.dueDate,
-      createdBy: 1, // TODO: Get from auth
+      createdBy: state.currentUser?.id || 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       tags: [],
@@ -112,6 +137,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       attachments: [],
       approvalChain: [],
       currentApprovalLevel: 'none' as const,
+      ...additionalFields
     };
 
     // Add optional fields only if they have values
@@ -265,8 +291,30 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   const getAssignableUsers = () => {
     if (!state.currentUser) return [];
     
-    // Return all users for now - will filter based on status selection
-    return state.users;
+    const currentUserRole = state.currentUser.role;
+    const currentUserDesignation = state.currentUser.designation;
+    
+    // Chairman (master with chairman designation) can assign to anyone except other chairmen
+    if (currentUserRole === 'master' && currentUserDesignation === 'chairman') {
+      return state.users.filter(u => 
+        u.role === 'director' || 
+        u.role === 'employee' || 
+        (u.role === 'master' && u.designation !== 'chairman')
+      );
+    }
+    
+    // Master (without chairman designation) can assign to anyone
+    if (currentUserRole === 'master' && currentUserDesignation !== 'chairman') {
+      return state.users;
+    }
+    
+    // Directors can only assign to employees
+    if (currentUserRole === 'director') {
+      return state.users.filter(u => u.role === 'employee');
+    }
+    
+    // Other roles (employees) cannot assign tasks during creation
+    return [];
   };
 
   // Get assignable users based on status selection and current user role

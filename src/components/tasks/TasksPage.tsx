@@ -132,7 +132,7 @@ export function TasksPage() {
             </button>
           </div>
           
-          {state.currentUser?.role === 'master' && (
+          {(state.currentUser?.role === 'master' || state.currentUser?.role === 'director') && (
             <button
               onClick={handleCreateTask}
               className="bg-brand-gold hover:bg-accent-gold text-pure-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 transition-colors text-sm sm:text-base"

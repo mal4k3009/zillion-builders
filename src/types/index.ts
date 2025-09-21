@@ -47,6 +47,8 @@ export interface Task {
   // New approval workflow fields
   assignedDirector?: number; // Director assigned by master admin
   assignedEmployee?: number; // Employee assigned by director
+  skipDirectorApproval?: boolean; // For chairman-to-employee direct assignments
+  directChairmanApproval?: boolean; // Tasks that go directly to chairman for approval
   approvalChain: TaskApproval[]; // Chain of approvals
   currentApprovalLevel: 'none' | 'director' | 'admin' | 'chairman'; // Who needs to approve next
   rejectionReason?: string; // Reason for rejection
