@@ -76,58 +76,24 @@ export const usersService = {
 
   async createWithAuth(userData: Omit<User, 'id'>): Promise<number> {
     try {
-      console.log('🔐 Creating user with Firebase Auth and Firestore...');
+      console.log('� Creating user in Firestore database...');
       
-      // Create Firestore user first to get the ID
+      // Create Firestore user
       const nextId = await this.getNextUserId();
+      const docRef = doc(db, 'users', nextId.toString());
       
-      // Import Firebase Auth functions
-      const { createUserWithEmailAndPassword, getAuth } = await import('firebase/auth');
-      const auth = getAuth();
+      // Remove undefined fields to prevent Firestore errors
+      const cleanUserData = Object.fromEntries(
+        Object.entries(userData).filter(([, value]) => value !== undefined)
+      );
       
-      try {
-        // Create Firebase Auth user
-        console.log('📧 Creating Firebase Auth user for:', userData.email);
-        const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
-        const firebaseUser = userCredential.user;
-        
-        console.log('✅ Firebase Auth user created:', firebaseUser.uid);
-        
-        // Create Firestore user with Firebase UID
-        const docRef = doc(db, 'users', nextId.toString());
-        const cleanUserData = Object.fromEntries(
-          Object.entries(userData).filter(([, value]) => value !== undefined)
-        );
-        
-        await setDoc(docRef, {
-          ...cleanUserData,
-          firebaseUid: firebaseUser.uid,
-          createdAt: serverTimestamp()
-        });
-        
-        console.log('✅ User created in both Auth and Firestore with ID:', nextId);
-        return nextId;
-        
-      } catch (authError: unknown) {
-        const error = authError as { code?: string; message?: string };
-        console.error('❌ Firebase Auth error:', error);
-        
-        // If Auth creation fails, still create Firestore user with flag
-        const docRef = doc(db, 'users', nextId.toString());
-        const cleanUserData = Object.fromEntries(
-          Object.entries(userData).filter(([, value]) => value !== undefined)
-        );
-        
-        await setDoc(docRef, {
-          ...cleanUserData,
-          needsAuthCreation: true,
-          authError: error.message || 'Unknown auth error',
-          createdAt: serverTimestamp()
-        });
-        
-        console.log('⚠️ Created Firestore user, but Auth creation failed. Manual auth creation needed.');
-        throw new Error(`User created in database but authentication setup failed: ${error.message || 'Unknown error'}`);
-      }
+      await setDoc(docRef, {
+        ...cleanUserData,
+        createdAt: serverTimestamp()
+      });
+      
+      console.log('✅ User created in Firestore with ID:', nextId);
+      return nextId;
       
     } catch (error) {
       console.error('❌ Error creating user:', error);
@@ -144,7 +110,17 @@ export const usersService = {
   },
 
   async delete(id: number): Promise<void> {
-    await deleteDoc(doc(db, 'users', id.toString()));
+    try {
+      console.log('🗑️ Deleting user from Firestore:', id);
+      
+      // Delete from Firestore
+      await deleteDoc(doc(db, 'users', id.toString()));
+      
+      console.log('✅ User deleted successfully from Firestore');
+    } catch (error) {
+      console.error('❌ Error deleting user:', error);
+      throw error;
+    }
   },
 
   async updateFCMToken(userId: number, fcmToken: string): Promise<void> {
@@ -270,11 +246,19 @@ export const tasksService = {
   onTasksSnapshot(callback: (tasks: Task[]) => void): () => void {
     const q = query(collection(db, 'tasks'), orderBy('createdAt', 'desc'));
     return onSnapshot(q, (snapshot) => {
-      const tasks = snapshot.docs.map(doc => ({ 
-        id: doc.id,
-        ...doc.data() 
-      } as Task));
-      callback(tasks);
+      try {
+        const tasks = snapshot.docs.map(doc => ({ 
+          id: doc.id,
+          ...doc.data() 
+        } as Task));
+        callback(tasks);
+      } catch (error) {
+        console.error('Error in tasks snapshot:', error);
+        callback([]); // Return empty array on error
+      }
+    }, (error) => {
+      console.error('Error in tasks snapshot listener:', error);
+      callback([]); // Return empty array on error
     });
   },
 
@@ -492,42 +476,48 @@ export const chatService = {
     );
     
     return onSnapshot(q, (querySnapshot) => {
-      console.log(`📨 Real-time update received! ${querySnapshot.docs.length} total messages found`);
-      
-      // Filter messages for this specific conversation
-      const conversationMessages = querySnapshot.docs
-        .map(doc => {
-          const data = doc.data();
-          // Handle both string and number IDs for compatibility
-          const senderId = typeof data.senderId === 'string' ? parseInt(data.senderId) : data.senderId;
-          const receiverId = typeof data.receiverId === 'string' ? parseInt(data.receiverId) : data.receiverId;
-          
-          return { 
-            id: doc.id, 
-            ...data,
-            senderId,
-            receiverId,
-            timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
-          } as ChatMessage;
-        })
-        .filter(msg => {
-          // Check if this message belongs to the conversation between userId1 and userId2
-          const isConversationMessage = 
-            (msg.senderId === userId1 && msg.receiverId === userId2) ||
-            (msg.senderId === userId2 && msg.receiverId === userId1);
-          
-          if (isConversationMessage) {
-            console.log(`📨 Found conversation message: ${msg.senderId} → ${msg.receiverId}: ${msg.content?.substring(0, 50)}...`);
-          }
-          
-          return isConversationMessage;
-        })
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-      
-      console.log(`📋 Filtered conversation messages: ${conversationMessages.length} for users ${userId1} ↔ ${userId2}`);
-      callback(conversationMessages);
+      try {
+        console.log(`📨 Real-time update received! ${querySnapshot.docs.length} total messages found`);
+        
+        // Filter messages for this specific conversation
+        const conversationMessages = querySnapshot.docs
+          .map(doc => {
+            const data = doc.data();
+            // Handle both string and number IDs for compatibility
+            const senderId = typeof data.senderId === 'string' ? parseInt(data.senderId) : data.senderId;
+            const receiverId = typeof data.receiverId === 'string' ? parseInt(data.receiverId) : data.receiverId;
+            
+            return { 
+              id: doc.id, 
+              ...data,
+              senderId,
+              receiverId,
+              timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+            } as ChatMessage;
+          })
+          .filter(msg => {
+            // Check if this message belongs to the conversation between userId1 and userId2
+            const isConversationMessage = 
+              (msg.senderId === userId1 && msg.receiverId === userId2) ||
+              (msg.senderId === userId2 && msg.receiverId === userId1);
+            
+            if (isConversationMessage) {
+              console.log(`📨 Found conversation message: ${msg.senderId} → ${msg.receiverId}: ${msg.content?.substring(0, 50)}...`);
+            }
+            
+            return isConversationMessage;
+          })
+          .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        
+        console.log(`📋 Filtered conversation messages: ${conversationMessages.length} for users ${userId1} ↔ ${userId2}`);
+        callback(conversationMessages);
+      } catch (error) {
+        console.error('Error processing conversation messages:', error);
+        callback([]); // Return empty array on error
+      }
     }, (error) => {
       console.error('❌ Error in real-time listener:', error);
+      callback([]); // Return empty array on error
     });
   },
 
@@ -549,42 +539,63 @@ export const chatService = {
     let completedSubscriptions = 0;
     
     const combineAndCallback = () => {
-      completedSubscriptions++;
-      if (completedSubscriptions === 2) {
-        // Remove duplicates and sort
-        const uniqueMessages = allMessages
-          .filter((msg, index, self) => index === self.findIndex(m => m.id === msg.id))
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-          .slice(0, 100);
-        
-        callback(uniqueMessages);
-        completedSubscriptions = 0; // Reset for next update
+      try {
+        completedSubscriptions++;
+        if (completedSubscriptions === 2) {
+          // Remove duplicates and sort
+          const uniqueMessages = allMessages
+            .filter((msg, index, self) => index === self.findIndex(m => m.id === msg.id))
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            .slice(0, 100);
+          
+          callback(uniqueMessages);
+          completedSubscriptions = 0; // Reset for next update
+        }
+      } catch (error) {
+        console.error('Error combining conversation messages:', error);
+        callback([]); // Return empty array on error
       }
     };
     
     const unsubscribe1 = onSnapshot(q, (querySnapshot) => {
-      const messages = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-          id: doc.id, 
-          ...data,
-          timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
-        } as ChatMessage;
-      });
-      allMessages = [...allMessages.filter(m => m.senderId !== userId), ...messages];
+      try {
+        const messages = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            ...data,
+            timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+          } as ChatMessage;
+        });
+        allMessages = [...allMessages.filter(m => m.senderId !== userId), ...messages];
+        combineAndCallback();
+      } catch (error) {
+        console.error('Error in sender messages snapshot:', error);
+        combineAndCallback();
+      }
+    }, (error) => {
+      console.error('Error in sender messages listener:', error);
       combineAndCallback();
     });
     
     const unsubscribe2 = onSnapshot(q2, (querySnapshot) => {
-      const messages = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-          id: doc.id, 
-          ...data,
-          timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
-        } as ChatMessage;
-      });
-      allMessages = [...allMessages.filter(m => m.receiverId !== userId), ...messages];
+      try {
+        const messages = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            ...data,
+            timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+          } as ChatMessage;
+        });
+        allMessages = [...allMessages.filter(m => m.receiverId !== userId), ...messages];
+        combineAndCallback();
+      } catch (error) {
+        console.error('Error in receiver messages snapshot:', error);
+        combineAndCallback();
+      }
+    }, (error) => {
+      console.error('Error in receiver messages listener:', error);
       combineAndCallback();
     });
     
@@ -701,20 +712,26 @@ export const notificationsService = {
     );
     
     return onSnapshot(q, (querySnapshot) => {
-      console.log(`📨 Notification update received! ${querySnapshot.docs.length} notifications found`);
-      
-      const notifications = querySnapshot.docs.map(doc => {
-        const data = doc.data();
-        return { 
-          id: doc.id, 
-          ...data,
-          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt
-        } as Notification;
-      });
-      
-      callback(notifications);
+      try {
+        console.log(`📨 Notification update received! ${querySnapshot.docs.length} notifications found`);
+        
+        const notifications = querySnapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            ...data,
+            createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt
+          } as Notification;
+        });
+        
+        callback(notifications);
+      } catch (error) {
+        console.error('Error processing notifications:', error);
+        callback([]); // Return empty array on error
+      }
     }, (error) => {
       console.error('❌ Error in notification listener:', error);
+      callback([]); // Return empty array on error
     });
   },
 

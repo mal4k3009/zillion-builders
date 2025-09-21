@@ -1,9 +1,3 @@
-import { 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged
-} from 'firebase/auth';
-import { auth } from './config';
 import { usersService } from './services';
 import { User } from '../types';
 
@@ -16,44 +10,42 @@ export interface AuthResult {
 class AuthService {
   private currentUser: User | null = null;
   private authStateListeners: ((user: User | null) => void)[] = [];
+  private SESSION_KEY = 'zillion_user_session';
 
-  // Initialize auth state listener
-  init(): Promise<User | null> {
-    return new Promise((resolve) => {
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        console.log('🔥 Firebase auth state changed:', firebaseUser ? 'User signed in' : 'User signed out');
+  // Initialize auth state from localStorage
+  async init(): Promise<User | null> {
+    console.log('🔐 Initializing authentication system...');
+    
+    try {
+      // Check for existing session in localStorage
+      const savedSession = localStorage.getItem(this.SESSION_KEY);
+      if (savedSession) {
+        const sessionData = JSON.parse(savedSession);
+        const { userId, email } = sessionData;
         
-        if (firebaseUser) {
-          // User is signed in, get their custom user data
-          try {
-            const customUser = await this.getCustomUserByEmail(firebaseUser.email!);
-            if (customUser) {
-              this.setCurrentUser(customUser);
-              resolve(customUser);
-            } else {
-              console.warn('No custom user data found for:', firebaseUser.email);
-              await this.signOut();
-              resolve(null);
-            }
-          } catch (error) {
-            console.error('Error fetching custom user data:', error);
-            await this.signOut();
-            resolve(null);
-          }
+        console.log('📱 Found saved session for:', email);
+        
+        // Verify the user still exists and is active
+        const user = await usersService.getById(userId);
+        if (user && user.status === 'active' && user.email === email) {
+          console.log('✅ Session restored for user:', user.email);
+          this.setCurrentUser(user);
+          return user;
         } else {
-          // User is signed out
-          this.setCurrentUser(null);
-          resolve(null);
+          console.log('⚠️ Saved session is invalid, clearing...');
+          localStorage.removeItem(this.SESSION_KEY);
         }
-      });
-
-      // Clean up listener after first call for initialization
-      setTimeout(() => {
-        if (typeof unsubscribe === 'function') {
-          // Keep the listener active for ongoing auth state changes
-        }
-      }, 100);
-    });
+      }
+      
+      console.log('👤 No valid session found, user needs to login');
+      this.setCurrentUser(null);
+      return null;
+    } catch (error) {
+      console.error('❌ Error initializing auth:', error);
+      localStorage.removeItem(this.SESSION_KEY);
+      this.setCurrentUser(null);
+      return null;
+    }
   }
 
   // Subscribe to auth state changes
@@ -72,53 +64,67 @@ class AuthService {
     };
   }
 
-  // Sign in with email/password directly
+  // Sign in with email/password using Firestore
   async signInWithEmail(email: string, password: string): Promise<AuthResult> {
     try {
       console.log('🔐 Attempting to sign in user with email:', email);
       
-      try {
-        // Try to sign in with Firebase Auth
-        await signInWithEmailAndPassword(auth, email, password);
-        
-        console.log('✅ Firebase sign in successful for:', email);
-        
-        // Get custom user data based on email
-        const customUser = await this.getCustomUserByEmail(email);
-        if (customUser) {
-          return { success: true, user: customUser };
-        } else {
-          console.warn('No custom user data found for:', email);
-          await this.signOut();
-          return { success: false, error: 'User data not found' };
-        }
-      } catch (firebaseError: unknown) {
-        const error = firebaseError as { code?: string; message?: string };
-        console.error('❌ Firebase auth error:', error);
-        
-        if (error.code === 'auth/user-not-found') {
-          return { success: false, error: 'User not found' };
-        } else if (error.code === 'auth/wrong-password') {
-          return { success: false, error: 'Invalid password' };
-        } else if (error.code === 'auth/invalid-email') {
-          return { success: false, error: 'Invalid email format' };
-        } else if (error.code === 'auth/user-disabled') {
-          return { success: false, error: 'User account is disabled' };
-        } else {
-          return { success: false, error: 'Authentication failed' };
-        }
+      // Get all users and find the one with matching email
+      const users = await usersService.getAll();
+      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.status === 'active');
+      
+      if (!user) {
+        console.log('❌ User not found or inactive:', email);
+        return { success: false, error: 'Invalid email or password' };
       }
+      
+      // Check password
+      if (user.password !== password) {
+        console.log('❌ Invalid password for user:', email);
+        return { success: false, error: 'Invalid email or password' };
+      }
+      
+      console.log('✅ Authentication successful for:', email);
+      
+      // Update last login
+      await usersService.update(user.id, {
+        lastLogin: new Date().toISOString()
+      });
+      
+      // Create session data
+      const sessionData = {
+        userId: user.id,
+        email: user.email,
+        loginTime: new Date().toISOString()
+      };
+      
+      // Save session to localStorage
+      localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionData));
+      
+      // Update current user
+      const updatedUser = { ...user, lastLogin: new Date().toISOString() };
+      this.setCurrentUser(updatedUser);
+      
+      return { success: true, user: updatedUser };
+      
     } catch (error) {
       console.error('❌ Sign in error:', error);
-      return { success: false, error: 'Authentication failed' };
+      return { success: false, error: 'Authentication failed. Please try again.' };
     }
   }
 
   // Sign out
   async signOut(): Promise<void> {
     try {
-      await signOut(auth);
-      console.log('👋 User signed out from Firebase');
+      console.log('👋 User signing out...');
+      
+      // Clear session from localStorage
+      localStorage.removeItem(this.SESSION_KEY);
+      
+      // Clear current user
+      this.setCurrentUser(null);
+      
+      console.log('✅ User signed out successfully');
     } catch (error) {
       console.error('❌ Error signing out:', error);
     }
@@ -129,21 +135,37 @@ class AuthService {
     return this.currentUser;
   }
 
+  // Check if user is authenticated
+  isAuthenticated(): boolean {
+    return this.currentUser !== null;
+  }
+
   // Private method to set current user and notify listeners
   private setCurrentUser(user: User | null): void {
     this.currentUser = user;
     this.authStateListeners.forEach(callback => callback(user));
   }
 
-  // Get custom user data by email
-  private async getCustomUserByEmail(email: string): Promise<User | null> {
+  // Validate current session
+  async validateSession(): Promise<boolean> {
     try {
-      const users = await usersService.getAll();
-      // Find user by email directly
-      return users.find(u => u.email === email && u.status === 'active') || null;
+      const savedSession = localStorage.getItem(this.SESSION_KEY);
+      if (!savedSession || !this.currentUser) {
+        return false;
+      }
+      
+      // Verify user still exists and is active
+      const user = await usersService.getById(this.currentUser.id);
+      if (!user || user.status !== 'active') {
+        await this.signOut();
+        return false;
+      }
+      
+      return true;
     } catch (error) {
-      console.error('Error fetching custom user data:', error);
-      return null;
+      console.error('❌ Session validation error:', error);
+      await this.signOut();
+      return false;
     }
   }
 }

@@ -62,6 +62,21 @@ type AppAction =
   | { type: 'TOGGLE_THEME' }
   | { type: 'TOGGLE_SIDEBAR' };
 
+// Initial state helper function for theme persistence
+const getInitialTheme = (): 'light' | 'dark' => {
+  if (typeof window !== 'undefined') {
+    const savedTheme = localStorage.getItem('zillion_theme');
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      return savedTheme;
+    }
+    // Check system preference if no saved theme
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+  }
+  return 'light';
+};
+
 const initialState: AppState = {
   currentUser: null,
   users: [],
@@ -72,7 +87,7 @@ const initialState: AppState = {
   activities: [],
   projects: [],
   userCategories: [],
-  theme: 'light',
+  theme: getInitialTheme(),
   sidebarOpen: true,
   loading: false
 };
@@ -213,8 +228,14 @@ function appReducer(state: AppState, action: AppAction): AppState {
         userCategories: state.userCategories.filter(category => category.id !== action.payload)
       };
 
-    case 'TOGGLE_THEME':
-      return { ...state, theme: state.theme === 'light' ? 'dark' : 'light' };
+    case 'TOGGLE_THEME': {
+      const newTheme = state.theme === 'light' ? 'dark' : 'light';
+      // Persist theme to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('zillion_theme', newTheme);
+      }
+      return { ...state, theme: newTheme };
+    }
 
     case 'TOGGLE_SIDEBAR':
       return { ...state, sidebarOpen: !state.sidebarOpen };
@@ -274,7 +295,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
-      const [users, chatMessages, notifications, whatsappMessages, activities, projects, userCategories] = await Promise.all([
+      // Load data with individual error handling
+      const [users, chatMessages, notifications, whatsappMessages, activities, projects, userCategories] = await Promise.allSettled([
         usersService.getAll(),
         chatService.getAll(),
         notificationsService.getAll(),
@@ -284,18 +306,63 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         userCategoriesService.getAll()
       ]);
 
-      dispatch({ type: 'SET_USERS', payload: users });
+      // Handle users result
+      if (users.status === 'fulfilled') {
+        dispatch({ type: 'SET_USERS', payload: users.value });
+      } else {
+        console.error('Error loading users:', users.reason);
+        dispatch({ type: 'SET_USERS', payload: [] });
+      }
+
+      // Handle other results
+      if (chatMessages.status === 'fulfilled') {
+        dispatch({ type: 'SET_CHAT_MESSAGES', payload: chatMessages.value });
+      } else {
+        console.error('Error loading chat messages:', chatMessages.reason);
+        dispatch({ type: 'SET_CHAT_MESSAGES', payload: [] });
+      }
+
+      if (notifications.status === 'fulfilled') {
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications.value });
+      } else {
+        console.error('Error loading notifications:', notifications.reason);
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
+      }
+
+      if (whatsappMessages.status === 'fulfilled') {
+        dispatch({ type: 'SET_WHATSAPP_MESSAGES', payload: whatsappMessages.value });
+      } else {
+        console.error('Error loading WhatsApp messages:', whatsappMessages.reason);
+        dispatch({ type: 'SET_WHATSAPP_MESSAGES', payload: [] });
+      }
+
+      if (activities.status === 'fulfilled') {
+        dispatch({ type: 'SET_ACTIVITIES', payload: activities.value });
+      } else {
+        console.error('Error loading activities:', activities.reason);
+        dispatch({ type: 'SET_ACTIVITIES', payload: [] });
+      }
+
+      if (projects.status === 'fulfilled') {
+        dispatch({ type: 'SET_PROJECTS', payload: projects.value });
+      } else {
+        console.error('Error loading projects:', projects.reason);
+        dispatch({ type: 'SET_PROJECTS', payload: [] });
+      }
+
+      if (userCategories.status === 'fulfilled') {
+        dispatch({ type: 'SET_USER_CATEGORIES', payload: userCategories.value });
+      } else {
+        console.error('Error loading user categories:', userCategories.reason);
+        dispatch({ type: 'SET_USER_CATEGORIES', payload: [] });
+      }
+
       // Tasks will be loaded via real-time subscription
       subscribeToTasks();
-      dispatch({ type: 'SET_CHAT_MESSAGES', payload: chatMessages });
-      dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
-      dispatch({ type: 'SET_WHATSAPP_MESSAGES', payload: whatsappMessages });
-      dispatch({ type: 'SET_ACTIVITIES', payload: activities });
-      dispatch({ type: 'SET_PROJECTS', payload: projects });
-      dispatch({ type: 'SET_USER_CATEGORIES', payload: userCategories });
 
       // Initialize task monitoring service with users data
-      taskMonitoringService.initialize(users);
+      const usersData = users.status === 'fulfilled' ? users.value : [];
+      taskMonitoringService.initialize(usersData);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
