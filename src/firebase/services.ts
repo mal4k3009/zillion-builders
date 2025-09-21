@@ -991,7 +991,7 @@ export const activitiesService = {
     const q = query(collection(db, 'activities'), orderBy('timestamp', 'desc'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
+      id: doc.id, // Use string ID from Firestore
       ...doc.data() 
     } as Activity));
   },
@@ -1003,7 +1003,7 @@ export const activitiesService = {
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.slice(0, limit).map(doc => ({ 
-      id: parseInt(doc.id), 
+      id: doc.id, // Use string ID from Firestore
       ...doc.data() 
     } as Activity));
   },

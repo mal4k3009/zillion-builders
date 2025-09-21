@@ -256,6 +256,7 @@ interface AppContextType {
   dispatch: React.Dispatch<AppAction>;
   // Firebase service methods
   loadAllData: () => Promise<void>;
+  backgroundSync: () => Promise<void>;
   createTask: (taskData: Omit<Task, 'id'>) => Promise<string>;
   updateTask: (id: string, taskData: Partial<Task>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
@@ -376,10 +377,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Background sync function that doesn't show loading states
+  const backgroundSync = async () => {
+    try {
+      // Load data silently without setting loading state
+      const [users, chatMessages, notifications, whatsappMessages, activities, projects, userCategories] = await Promise.allSettled([
+        usersService.getAll(),
+        chatService.getAll(),
+        notificationsService.getAll(),
+        whatsappService.getAll(),
+        activitiesService.getAll(),
+        projectsService.getAll(),
+        userCategoriesService.getAll()
+      ]);
+
+      // Update state only if data has changed (optional optimization)
+      if (users.status === 'fulfilled') {
+        dispatch({ type: 'SET_USERS', payload: users.value });
+      }
+      if (chatMessages.status === 'fulfilled') {
+        dispatch({ type: 'SET_CHAT_MESSAGES', payload: chatMessages.value });
+      }
+      if (notifications.status === 'fulfilled') {
+        dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications.value });
+      }
+      if (whatsappMessages.status === 'fulfilled') {
+        dispatch({ type: 'SET_WHATSAPP_MESSAGES', payload: whatsappMessages.value });
+      }
+      if (activities.status === 'fulfilled') {
+        dispatch({ type: 'SET_ACTIVITIES', payload: activities.value });
+      }
+      if (projects.status === 'fulfilled') {
+        dispatch({ type: 'SET_PROJECTS', payload: projects.value });
+      }
+      if (userCategories.status === 'fulfilled') {
+        dispatch({ type: 'SET_USER_CATEGORIES', payload: userCategories.value });
+      }
+    } catch (error) {
+      console.error('Error in background sync:', error);
+    }
+  };
+
   // Task operations
   const createTask = async (taskData: Omit<Task, 'id'>): Promise<string> => {
     try {
       const taskId = await tasksService.create(taskData);
+      
+      // Create the task object for immediate UI update
+      const newTask: Task = {
+        id: taskId,
+        ...taskData,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Update UI immediately
+      dispatch({ type: 'ADD_TASK', payload: newTask });
       
       // Create notification for task assignment if assignedTo is specified
       if (taskData.assignedTo && state.currentUser) {
@@ -392,7 +445,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         );
       }
       
-      await loadAllData(); // Reload to get the updated data
       return taskId;
     } catch (error) {
       console.error('Error creating task:', error);
@@ -401,9 +453,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateTask = async (id: string, taskData: Partial<Task>) => {
+    let originalTask: Task | undefined;
     try {
       // Get the original task to check for assignee changes
-      const originalTask = state.tasks.find(task => task.id === id);
+      originalTask = state.tasks.find(task => task.id === id);
       
       if (!originalTask) {
         console.error('Task not found for update:', id);
@@ -411,7 +464,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Create updated task object for immediate UI update
-      const updatedTask = { ...originalTask, ...taskData };
+      const updatedTask = { 
+        ...originalTask, 
+        ...taskData,
+        updatedAt: new Date().toISOString()
+      };
       
       // Update UI immediately
       dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
@@ -451,24 +508,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           );
         }
       }
-      
-      // Reload data to ensure sync with backend
-      await loadAllData();
     } catch (error) {
       console.error('Error updating task:', error);
-      // If the update failed, reload data to revert to the correct state
-      await loadAllData();
+      // If the update failed, revert the UI change
+      if (originalTask) {
+        dispatch({ type: 'UPDATE_TASK', payload: originalTask });
+      }
+      throw error;
     }
   };
 
   const deleteTask = async (id: string) => {
+    let taskToDelete: Task | undefined;
     try {
-      await tasksService.delete(id);
+      // Store the task for potential rollback
+      taskToDelete = state.tasks.find(task => task.id === id);
+      
+      // Update UI immediately
       dispatch({ type: 'DELETE_TASK', payload: id });
-      // Reload data to ensure sync
-      await loadAllData();
+      
+      // Delete from Firebase
+      await tasksService.delete(id);
     } catch (error) {
       console.error('Error deleting task:', error);
+      // If deletion failed, restore the task
+      if (taskToDelete) {
+        dispatch({ type: 'ADD_TASK', payload: taskToDelete });
+      }
       throw error; // Re-throw to let UI handle error
     }
   };
@@ -479,7 +545,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Use createWithAuth to create both Firebase Auth and Firestore user
       const newUserId = await usersService.createWithAuth(userData);
       console.log('✅ User created with Auth and Firestore, ID:', newUserId);
-      await loadAllData();
+      
+      // Create the user object for immediate UI update
+      const newUser: User = {
+        id: newUserId,
+        ...userData,
+        lastLogin: undefined,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Update UI immediately
+      dispatch({ type: 'ADD_USER', payload: newUser });
     } catch (error) {
       console.error('Error creating user:', error);
       throw error; // Re-throw to let the UI handle the error
@@ -487,11 +563,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateUser = async (id: number, userData: Partial<User>) => {
+    let originalUser: User | undefined;
     try {
+      // Get the original user for potential rollback
+      originalUser = state.users.find(user => user.id === id);
+      
+      if (!originalUser) {
+        console.error('User not found for update:', id);
+        return;
+      }
+
+      // Create updated user object for immediate UI update
+      const updatedUser = { 
+        ...originalUser, 
+        ...userData
+      };
+      
+      // Update UI immediately
+      dispatch({ type: 'UPDATE_USER', payload: updatedUser });
+      
+      // Update in Firebase
       await usersService.update(id, userData);
-      await loadAllData();
     } catch (error) {
       console.error('Error updating user:', error);
+      // If the update failed, revert the UI change
+      if (originalUser) {
+        dispatch({ type: 'UPDATE_USER', payload: originalUser });
+      }
+      throw error;
     }
   };
 
@@ -565,8 +664,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Notification operations
   const createNotification = async (notificationData: Omit<Notification, 'id'>) => {
     try {
-      await notificationsService.create(notificationData);
-      await loadAllData();
+      const notificationId = await notificationsService.create(notificationData);
+      
+      // Create the notification object for immediate UI update
+      const newNotification: Notification = {
+        id: notificationId,
+        ...notificationData,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Update UI immediately
+      dispatch({ type: 'ADD_NOTIFICATION', payload: newNotification });
     } catch (error) {
       console.error('Error creating notification:', error);
     }
@@ -623,7 +731,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Optimistic update: Add activity to local state immediately
       const tempActivity: Activity = {
         ...activityData,
-        id: Date.now(), // Temporary ID for optimistic update
+        id: Date.now().toString(), // Temporary ID for optimistic update
       };
       dispatch({ type: 'ADD_ACTIVITY', payload: tempActivity });
 
@@ -752,36 +860,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'ADD_PROJECT', payload: newProject });
     } catch (error) {
       console.error('Error creating project:', error);
-      // If error, reload data to sync with server
-      await loadAllData();
+      throw error;
     }
   };
 
   const updateProject = async (id: number, projectData: Partial<Project>) => {
+    let originalProject: Project | undefined;
     try {
-      await projectsService.update(id, projectData);
+      // Get the original project for potential rollback
+      originalProject = state.projects.find(p => p.id === id);
       
-      // Optimistic update: Update project in state immediately
-      const currentProject = state.projects.find(p => p.id === id);
-      if (currentProject) {
-        const updatedProject = { ...currentProject, ...projectData };
-        dispatch({ type: 'UPDATE_PROJECT', payload: updatedProject });
+      if (!originalProject) {
+        console.error('Project not found for update:', id);
+        return;
       }
+
+      // Create updated project object for immediate UI update
+      const updatedProject = { ...originalProject, ...projectData };
+      
+      // Update UI immediately
+      dispatch({ type: 'UPDATE_PROJECT', payload: updatedProject });
+      
+      // Update in Firebase
+      await projectsService.update(id, projectData);
     } catch (error) {
       console.error('Error updating project:', error);
-      // If error, reload data to sync with server
-      await loadAllData();
+      // If the update failed, revert the UI change
+      if (originalProject) {
+        dispatch({ type: 'UPDATE_PROJECT', payload: originalProject });
+      }
+      throw error;
     }
   };
 
   const deleteProject = async (id: number) => {
+    let projectToDelete: Project | undefined;
     try {
-      await projectsService.delete(id);
+      // Store the project for potential rollback
+      projectToDelete = state.projects.find(project => project.id === id);
+      
+      // Update UI immediately
       dispatch({ type: 'DELETE_PROJECT', payload: id });
+      
+      // Delete from Firebase
+      await projectsService.delete(id);
     } catch (error) {
       console.error('Error deleting project:', error);
-      // If error, reload data to sync with server
-      await loadAllData();
+      // If deletion failed, restore the project
+      if (projectToDelete) {
+        dispatch({ type: 'ADD_PROJECT', payload: projectToDelete });
+      }
+      throw error;
     }
   };
 
@@ -838,39 +967,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'ADD_USER_CATEGORY', payload: newCategory });
     } catch (error) {
       console.error('Error creating user category:', error);
-      // If error, reload data to sync with server
-      const updatedCategories = await userCategoriesService.getAll();
-      dispatch({ type: 'SET_USER_CATEGORIES', payload: updatedCategories });
+      throw error;
     }
   };
 
   const updateUserCategory = async (id: number, categoryData: Partial<UserCategory>) => {
+    let originalCategory: UserCategory | undefined;
     try {
-      await userCategoriesService.update(id, categoryData);
+      // Get the original category for potential rollback
+      originalCategory = state.userCategories.find(c => c.id === id);
       
-      // Optimistic update: Update category in state immediately
-      const currentCategory = state.userCategories.find(c => c.id === id);
-      if (currentCategory) {
-        const updatedCategory = { ...currentCategory, ...categoryData };
-        dispatch({ type: 'UPDATE_USER_CATEGORY', payload: updatedCategory });
+      if (!originalCategory) {
+        console.error('User category not found for update:', id);
+        return;
       }
+
+      // Create updated category object for immediate UI update
+      const updatedCategory = { 
+        ...originalCategory, 
+        ...categoryData,
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Update UI immediately
+      dispatch({ type: 'UPDATE_USER_CATEGORY', payload: updatedCategory });
+      
+      // Update in Firebase
+      await userCategoriesService.update(id, categoryData);
     } catch (error) {
       console.error('Error updating user category:', error);
-      // If error, reload data to sync with server
-      const updatedCategories = await userCategoriesService.getAll();
-      dispatch({ type: 'SET_USER_CATEGORIES', payload: updatedCategories });
+      // If the update failed, revert the UI change
+      if (originalCategory) {
+        dispatch({ type: 'UPDATE_USER_CATEGORY', payload: originalCategory });
+      }
+      throw error;
     }
   };
 
   const deleteUserCategory = async (id: number) => {
+    let categoryToDelete: UserCategory | undefined;
     try {
-      await userCategoriesService.delete(id);
+      // Store the category for potential rollback
+      categoryToDelete = state.userCategories.find(category => category.id === id);
+      
+      // Update UI immediately
       dispatch({ type: 'DELETE_USER_CATEGORY', payload: id });
+      
+      // Delete from Firebase
+      await userCategoriesService.delete(id);
     } catch (error) {
       console.error('Error deleting user category:', error);
-      // If error, reload data to sync with server
-      const updatedCategories = await userCategoriesService.getAll();
-      dispatch({ type: 'SET_USER_CATEGORIES', payload: updatedCategories });
+      // If deletion failed, restore the category
+      if (categoryToDelete) {
+        dispatch({ type: 'ADD_USER_CATEGORY', payload: categoryToDelete });
+      }
+      throw error;
     }
   };
 
@@ -878,6 +1029,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     state,
     dispatch,
     loadAllData,
+    backgroundSync,
     createTask,
     updateTask,
     deleteTask,

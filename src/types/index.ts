@@ -123,7 +123,7 @@ export interface DashboardStats {
 }
 
 export interface Activity {
-  id: number;
+  id: string; // Changed from number to string for Firestore compatibility
   type: 'task_created' | 'task_updated' | 'user_created' | 'user_updated' | 'message_sent' | 'task_approved' | 'task_rejected' | 'approval_requested';
   description: string;
   userId: number;
