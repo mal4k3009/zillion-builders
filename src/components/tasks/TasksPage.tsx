@@ -26,9 +26,47 @@ export function TasksPage() {
   const filteredTasks = useMemo(() => {
     let tasks = state.tasks;
 
-    // Filter by user role - show only assigned tasks for sub users
-    if (state.currentUser?.role === 'sub') {
-      tasks = tasks.filter(task => task.assignedTo === state.currentUser?.id);
+    // Role-based task filtering
+    if (state.currentUser) {
+      const userRole = state.currentUser.role;
+      const userId = state.currentUser.id;
+      
+      if (userRole === 'employee') {
+        // Employees can only see tasks assigned to them
+        tasks = tasks.filter(task => task.assignedTo === userId);
+      } else if (userRole === 'director') {
+        // Directors can see:
+        // 1. All tasks created by any director
+        // 2. Tasks assigned to them
+        // 3. Tasks they need to approve
+        const directorUsers = state.users.filter(u => u.role === 'director').map(u => u.id);
+        tasks = tasks.filter(task => 
+          directorUsers.includes(task.createdBy) || // Created by any director
+          task.assignedTo === userId || // Assigned to this director
+          task.assignedDirector === userId || // This director needs to approve
+          (task.approvalChain && task.approvalChain.some(approval => 
+            approval.approverRole === 'director' && approval.approverUserId === userId
+          ))
+        );
+      } else if (userRole === 'chairman' || userRole === 'master') {
+        // Chairman and Master can see:
+        // 1. All tasks created by any chairman/master
+        // 2. Tasks assigned to them  
+        // 3. Tasks they need to approve
+        const chairmanUsers = state.users.filter(u => u.role === 'chairman' || u.role === 'master').map(u => u.id);
+        tasks = tasks.filter(task => 
+          chairmanUsers.includes(task.createdBy) || // Created by any chairman/master
+          task.assignedTo === userId || // Assigned to this user
+          (task.approvalChain && task.approvalChain.some(approval => 
+            (approval.approverRole === 'chairman' || approval.approverRole === 'admin') && 
+            approval.approverUserId === userId
+          ))
+        );
+      }
+      // If role is 'sub' (legacy), show only assigned tasks
+      else if (userRole === 'sub') {
+        tasks = tasks.filter(task => task.assignedTo === userId);
+      }
     }
 
     // Apply filters
@@ -68,7 +106,7 @@ export function TasksPage() {
     }
 
     return tasks.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [state.tasks, state.currentUser, searchTerm, userFilter, projectFilter, departmentFilter, statusFilter, priorityFilter, dueDateFilter]);
+  }, [state.tasks, state.users, state.currentUser, searchTerm, userFilter, projectFilter, departmentFilter, statusFilter, priorityFilter, dueDateFilter]);
 
   const handleCreateTask = () => {
     setSelectedTask(null);

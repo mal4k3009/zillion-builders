@@ -17,14 +17,14 @@ export function ApprovalSection() {
 
   useEffect(() => {
     const fetchPendingApprovals = async () => {
-      if (!currentUser || (currentUserRole !== 'master' && currentUserRole !== 'director')) {
+      if (!currentUser || (currentUserRole !== 'master' && currentUserRole !== 'director' && currentUserRole !== 'chairman')) {
         return;
       }
       
       try {
         const tasks = await tasksService.getTasksAwaitingApproval(
           currentUser.id, 
-          currentUserRole as 'director' | 'master'
+          currentUserRole as 'director' | 'master' | 'chairman'
         );
         setPendingApprovalTasks(tasks);
       } catch (error) {
@@ -35,8 +35,8 @@ export function ApprovalSection() {
     fetchPendingApprovals();
   }, [currentUser, currentUserRole]);
 
-  // Only show for directors and master admins
-  if (currentUserRole !== 'master' && currentUserRole !== 'director') {
+  // Only show for directors, master admins, and chairmen
+  if (currentUserRole !== 'master' && currentUserRole !== 'director' && currentUserRole !== 'chairman') {
     return null;
   }
 
@@ -46,6 +46,8 @@ export function ApprovalSection() {
         await tasksService.approveByDirector(taskId, true);
       } else if (currentUserRole === 'master') {
         await tasksService.approveByAdmin(taskId, true);
+      } else if (currentUserRole === 'chairman') {
+        await tasksService.approveByChairman(taskId, true);
       }
       
       // Add activity log
@@ -61,7 +63,7 @@ export function ApprovalSection() {
       // Refresh the pending approvals list
       const tasks = await tasksService.getTasksAwaitingApproval(
         currentUser!.id, 
-        currentUserRole as 'director' | 'master'
+        currentUserRole as 'director' | 'master' | 'chairman'
       );
       setPendingApprovalTasks(tasks);
     } catch (error) {
@@ -78,6 +80,8 @@ export function ApprovalSection() {
         await tasksService.approveByDirector(taskId, false, rejectionReason);
       } else if (currentUserRole === 'master') {
         await tasksService.approveByAdmin(taskId, false, rejectionReason);
+      } else if (currentUserRole === 'chairman') {
+        await tasksService.approveByChairman(taskId, false, rejectionReason);
       }
       
       // Add activity log
@@ -93,7 +97,7 @@ export function ApprovalSection() {
       // Refresh the pending approvals list
       const tasks = await tasksService.getTasksAwaitingApproval(
         currentUser!.id, 
-        currentUserRole as 'director' | 'master'
+        currentUserRole as 'director' | 'master' | 'chairman'
       );
       setPendingApprovalTasks(tasks);
     } catch (error) {

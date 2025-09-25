@@ -1,4 +1,3 @@
-import React from 'react';
 import { Calendar, User, Flag, ArrowRight } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { priorityLevels } from '../../data/mockData';
@@ -7,10 +6,43 @@ export function RecentTasks() {
   const { state } = useApp();
 
   const getUserTasks = () => {
-    if (state.currentUser?.role === 'master') {
-      return state.tasks;
+    if (!state.currentUser) return [];
+    
+    const userRole = state.currentUser.role;
+    const userId = state.currentUser.id;
+    let tasks = state.tasks;
+    
+    if (userRole === 'employee') {
+      // Employees can only see tasks assigned to them
+      tasks = tasks.filter(task => task.assignedTo === userId);
+    } else if (userRole === 'director') {
+      // Directors can see all tasks created by any director + their assigned/approval tasks
+      const directorUsers = state.users.filter(u => u.role === 'director').map(u => u.id);
+      tasks = tasks.filter(task => 
+        directorUsers.includes(task.createdBy) || 
+        task.assignedTo === userId || 
+        task.assignedDirector === userId ||
+        (task.approvalChain && task.approvalChain.some(approval => 
+          approval.approverRole === 'director' && approval.approverUserId === userId
+        ))
+      );
+    } else if (userRole === 'chairman' || userRole === 'master') {
+      // Chairman and Master can see all tasks created by any chairman/master + their tasks
+      const chairmanUsers = state.users.filter(u => u.role === 'chairman' || u.role === 'master').map(u => u.id);
+      tasks = tasks.filter(task => 
+        chairmanUsers.includes(task.createdBy) || 
+        task.assignedTo === userId || 
+        (task.approvalChain && task.approvalChain.some(approval => 
+          (approval.approverRole === 'chairman' || approval.approverRole === 'admin') && 
+          approval.approverUserId === userId
+        ))
+      );
+    } else {
+      // Default: show only assigned tasks
+      tasks = tasks.filter(task => task.assignedTo === userId);
     }
-    return state.tasks.filter(task => task.assignedTo === state.currentUser?.id);
+    
+    return tasks;
   };
 
   const recentTasks = getUserTasks()

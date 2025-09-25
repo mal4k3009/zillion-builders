@@ -36,20 +36,6 @@ export function LoginPage() {
     setLoading(false);
   };
 
-  const quickLogin = (userType: string) => {
-    const credentials: Record<string, { email: string; password: string }> = {
-      // Master Admin with correct email
-      master: { email: 'admin@company.com', password: 'admin123' }
-    };
-
-    const creds = credentials[userType];
-    if (creds) {
-      console.log('⚡ Quick login for:', userType, 'with credentials:', creds);
-      setEmail(creds.email);
-      setPassword(creds.password);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-deep-charcoal via-soft-black to-deep-charcoal flex items-center justify-center p-3 sm:p-4">
       <div className="w-full max-w-md">
@@ -121,18 +107,6 @@ export function LoginPage() {
               )}
             </button>
           </form>
-
-          <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-white/20">
-            <p className="text-accent-gold text-xs sm:text-sm text-center mb-3 sm:mb-4">Quick Login (Demo)</p>
-            <div className="flex justify-center">
-              <button
-                onClick={() => quickLogin('master')}
-                className="px-4 sm:px-6 py-2 sm:py-3 bg-brand-gold/20 hover:bg-brand-gold/30 text-accent-gold text-sm sm:text-base rounded-lg transition-colors"
-              >
-                Master Admin
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
