@@ -27,16 +27,8 @@ export function RecentTasks() {
         ))
       );
     } else if (userRole === 'chairman' || userRole === 'master') {
-      // Chairman and Master can see all tasks created by any chairman/master + their tasks
-      const chairmanUsers = state.users.filter(u => u.role === 'chairman' || u.role === 'master').map(u => u.id);
-      tasks = tasks.filter(task => 
-        chairmanUsers.includes(task.createdBy) || 
-        task.assignedTo === userId || 
-        (task.approvalChain && task.approvalChain.some(approval => 
-          (approval.approverRole === 'chairman' || approval.approverRole === 'admin') && 
-          approval.approverUserId === userId
-        ))
-      );
+      // Chairman and Master can see ALL tasks (highest privilege level)
+      // No filtering needed - they should see everything including director and employee tasks
     } else {
       // Default: show only assigned tasks
       tasks = tasks.filter(task => task.assignedTo === userId);
