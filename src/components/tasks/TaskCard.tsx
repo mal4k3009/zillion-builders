@@ -11,7 +11,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Users
+  Users,
+  Loader2
 } from 'lucide-react';
 import { Task } from '../../types';
 import { useApp } from '../../context/AppContext';
@@ -33,6 +34,8 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const [showReapprovalModal, setShowReapprovalModal] = useState(false);
   const [reapprovalReason, setReapprovalReason] = useState('');
   const [isSubmittingReapproval, setIsSubmittingReapproval] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<string>('');
   
   const assignedUser = state.users.find(u => u.id === task.assignedTo);
   const priority = priorityLevels.find(p => p.id === task.priority);
@@ -151,34 +154,72 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   };
 
   const handleMarkInProgress = async () => {
+    setIsLoading(true);
+    setLoadingAction('progress');
+    
     try {
+      // Optimistic update - immediately update UI
+      updateTaskInContext(task.id, { status: 'in_progress' });
+      
+      // Then update in database
       await tasksService.update(task.id, { status: 'in_progress' });
-      // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
       console.error('Error marking as in progress:', error);
+      // Revert optimistic update on error
+      updateTaskInContext(task.id, { status: task.status });
+    } finally {
+      setIsLoading(false);
+      setLoadingAction('');
     }
   };
 
   const handleMarkComplete = async () => {
+    setIsLoading(true);
+    setLoadingAction('complete');
+    
     try {
+      // Optimistic update
+      updateTaskInContext(task.id, { status: 'pending_director_approval' });
+      
       await tasksService.markAsCompletedByEmployee(task.id);
-      // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
       console.error('Error marking as complete:', error);
+      // Revert optimistic update
+      updateTaskInContext(task.id, { status: task.status });
+    } finally {
+      setIsLoading(false);
+      setLoadingAction('');
     }
   };
 
   const handleDirectorComplete = async () => {
+    setIsLoading(true);
+    setLoadingAction('director-complete');
+    
     try {
+      // Optimistic update
+      updateTaskInContext(task.id, { status: 'pending_chairman_approval' });
+      
       await tasksService.markAsCompletedByDirector(task.id);
-      // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
       console.error('Error completing task as director:', error);
+      // Revert optimistic update
+      updateTaskInContext(task.id, { status: task.status });
+    } finally {
+      setIsLoading(false);
+      setLoadingAction('');
     }
   };
 
   const handleApproval = async (approved: boolean, rejectionReason?: string) => {
+    setIsLoading(true);
+    setLoadingAction(approved ? 'approve' : 'reject');
+    
     try {
+      // Optimistic update
+      const newStatus = approved ? 'completed' : 'rejected';
+      updateTaskInContext(task.id, { status: newStatus });
+      
       if (canApproveAsDirector) {
         await tasksService.approveByDirector(task.id, approved, rejectionReason);
       } else if (canApproveAsAdmin) {
@@ -186,9 +227,13 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
       } else if (canApproveAsChairman) {
         await tasksService.approveByChairman(task.id, approved, rejectionReason);
       }
-      // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
       console.error('Error processing approval:', error);
+      // Revert optimistic update
+      updateTaskInContext(task.id, { status: task.status });
+    } finally {
+      setIsLoading(false);
+      setLoadingAction('');
     }
   };
 
@@ -393,9 +438,14 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
           {canMarkInProgress && (
             <button
               onClick={handleMarkInProgress}
-              className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition-colors"
+              disabled={isLoading}
+              className="flex items-center gap-1 px-3 py-1 bg-blue-500 text-white text-xs rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Clock className="w-3 h-3" />
+              {isLoading && loadingAction === 'progress' ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Clock className="w-3 h-3" />
+              )}
               Mark in Progress
             </button>
           )}
@@ -404,9 +454,14 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
           {canMarkComplete && (
             <button
               onClick={handleMarkComplete}
-              className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition-colors"
+              disabled={isLoading}
+              className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <CheckCircle className="w-3 h-3" />
+              {isLoading && loadingAction === 'complete' ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <CheckCircle className="w-3 h-3" />
+              )}
               Mark Complete
             </button>
           )}
@@ -415,9 +470,14 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
           {canDirectorComplete && (
             <button
               onClick={handleDirectorComplete}
-              className="flex items-center gap-1 px-3 py-1 bg-purple-500 text-white text-xs rounded-lg hover:bg-purple-600 transition-colors"
+              disabled={isLoading}
+              className="flex items-center gap-1 px-3 py-1 bg-purple-500 text-white text-xs rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <CheckCircle className="w-3 h-3" />
+              {isLoading && loadingAction === 'director-complete' ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <CheckCircle className="w-3 h-3" />
+              )}
               Complete & Send to Chairman
             </button>
           )}
@@ -427,16 +487,26 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
             <>
               <button
                 onClick={() => handleApproval(true)}
-                className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition-colors"
+                disabled={isLoading}
+                className="flex items-center gap-1 px-3 py-1 bg-green-500 text-white text-xs rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <CheckCircle className="w-3 h-3" />
+                {isLoading && loadingAction === 'approve' ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <CheckCircle className="w-3 h-3" />
+                )}
                 Approve
               </button>
               <button
                 onClick={() => setShowRejectionModal(true)}
-                className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors"
+                disabled={isLoading}
+                className="flex items-center gap-1 px-3 py-1 bg-red-500 text-white text-xs rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <XCircle className="w-3 h-3" />
+                {isLoading && loadingAction === 'reject' ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <XCircle className="w-3 h-3" />
+                )}
                 Reject
               </button>
             </>

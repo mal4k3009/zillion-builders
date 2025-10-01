@@ -18,30 +18,14 @@ export function ApprovalSection() {
   useEffect(() => {
     const fetchPendingApprovals = async () => {
       if (!currentUser || (currentUserRole !== 'master' && currentUserRole !== 'director' && currentUserRole !== 'chairman')) {
-        console.log('🚫 ApprovalSection: User check failed', { currentUser, currentUserRole });
         return;
       }
-      
-      console.log('🔍 ApprovalSection: Fetching approvals for', { 
-        userId: currentUser.id, 
-        role: currentUserRole 
-      });
       
       try {
         const tasks = await tasksService.getTasksAwaitingApproval(
           currentUser.id, 
           currentUserRole as 'director' | 'master' | 'chairman'
         );
-        console.log('📋 ApprovalSection: Received tasks', { 
-          count: tasks.length, 
-          tasks: tasks.map(t => ({ 
-            id: t.id, 
-            title: t.title, 
-            status: t.status, 
-            currentApprovalLevel: t.currentApprovalLevel,
-            approvalChain: t.approvalChain 
-          }))
-        });
         setPendingApprovalTasks(tasks);
       } catch (error) {
         console.error('❌ ApprovalSection: Error fetching pending approvals:', error);

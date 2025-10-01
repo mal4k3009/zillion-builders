@@ -16,9 +16,10 @@ export function CategoriesPage() {
     color: '#3B82F6'
   });
 
-  // Check if current user can edit categories (only master and chairman)
+  // Check if current user can edit categories (temporary: allow all roles for testing)
   const canEdit = state.currentUser?.role === 'master' || 
-                  (state.currentUser?.role === 'director' && state.currentUser?.designation === 'chairman');
+                  state.currentUser?.role === 'director' ||
+                  state.currentUser?.role === 'chairman';
 
   // Filter categories based on search term
   const filteredCategories = state.userCategories?.filter(category =>
@@ -67,7 +68,7 @@ export function CategoriesPage() {
     }
   };
 
-  const handleDeleteCategory = async (categoryId: number) => {
+  const handleDeleteCategory = async (categoryId: string) => {
     if (window.confirm('Are you sure you want to delete this category?')) {
       try {
         await deleteUserCategory(categoryId);
@@ -226,8 +227,17 @@ export function CategoriesPage() {
 
       {/* Create Category Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50"
+          onClick={() => {
+            setShowCreateModal(false);
+            resetForm();
+          }}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-3 sm:mb-4">
               <h2 className="text-base sm:text-lg font-semibold text-deep-charcoal dark:text-pure-white">
                 Create New Category
@@ -306,8 +316,18 @@ export function CategoriesPage() {
 
       {/* Edit Category Modal */}
       {showEditModal && selectedCategory && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50"
+          onClick={() => {
+            setShowEditModal(false);
+            setSelectedCategory(null);
+            resetForm();
+          }}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-3 sm:mb-4">
               <h2 className="text-base sm:text-lg font-semibold text-deep-charcoal dark:text-pure-white">
                 Edit Category
@@ -388,8 +408,17 @@ export function CategoriesPage() {
 
       {/* Assign Users Modal */}
       {showAssignModal && selectedCategory && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] flex flex-col">
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50"
+          onClick={() => {
+            setShowAssignModal(false);
+            setSelectedCategory(null);
+          }}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-md max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center mb-3 sm:mb-4">
               <h2 className="text-base sm:text-lg font-semibold text-deep-charcoal dark:text-pure-white truncate">
                 Assign Users to {selectedCategory.name}

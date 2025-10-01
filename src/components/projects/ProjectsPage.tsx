@@ -13,9 +13,10 @@ export function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'completed'>('all');
 
-  // Check if current user can edit projects/categories (only master and chairman)
+  // Check if current user can edit projects/categories (temporary: allow all roles for testing)
   const canEdit = state.currentUser?.role === 'master' || 
-                  (state.currentUser?.role === 'director' && state.currentUser?.designation === 'chairman');
+                  state.currentUser?.role === 'director' ||
+                  state.currentUser?.role === 'chairman';
   
   const [projectForm, setProjectForm] = useState<{
     name: string;
@@ -358,8 +359,17 @@ export function ProjectsPage() {
 
       {/* Project Modal */}
       {showProjectModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50"
+          onClick={() => {
+            setShowProjectModal(false);
+            setEditingProject(null);
+          }}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 {editingProject ? 'Edit Project' : 'Create New Project'}
@@ -443,8 +453,17 @@ export function ProjectsPage() {
 
       {/* Category Modal */}
       {showCategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50"
+          onClick={() => {
+            setShowCategoryModal(false);
+            setEditingCategory(null);
+          }}
+        >
+          <div 
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
                 {editingCategory ? 'Edit Category' : 'Create New Category'}

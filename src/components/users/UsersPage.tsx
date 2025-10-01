@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Plus, Search, Edit, Trash2, User, Shield } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { UserModal } from './UserModal';

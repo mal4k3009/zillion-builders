@@ -152,7 +152,7 @@ export interface Category {
 }
 
 export interface UserCategory {
-  id: number;
+  id: string; // Changed from number to string to match Firebase document IDs
   name: string;
   description?: string;
   color?: string;

@@ -60,7 +60,7 @@ type AppAction =
   | { type: 'SET_USER_CATEGORIES'; payload: UserCategory[] }
   | { type: 'ADD_USER_CATEGORY'; payload: UserCategory }
   | { type: 'UPDATE_USER_CATEGORY'; payload: UserCategory }
-  | { type: 'DELETE_USER_CATEGORY'; payload: number }
+  | { type: 'DELETE_USER_CATEGORY'; payload: string }
   | { type: 'TOGGLE_THEME' }
   | { type: 'TOGGLE_SIDEBAR' };
 
@@ -280,8 +280,8 @@ interface AppContextType {
   deleteCategory: (id: string) => Promise<void>;
   // User category management functions
   createUserCategory: (categoryData: Omit<UserCategory, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  updateUserCategory: (id: number, categoryData: Partial<UserCategory>) => Promise<void>;
-  deleteUserCategory: (id: number) => Promise<void>;
+  updateUserCategory: (id: string, categoryData: Partial<UserCategory>) => Promise<void>;
+  deleteUserCategory: (id: string) => Promise<void>;
   // Real-time chat functions
   subscribeToUserConversations: (userId: number) => () => void;
   subscribeToConversation: (userId1: number, userId2: number, callback?: (messages: ChatMessage[]) => void) => () => void;
@@ -894,22 +894,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const deleteProject = async (id: string) => {
-    let projectToDelete: Project | undefined;
     try {
-      // Store the project for potential rollback
-      projectToDelete = state.projects.find(project => project.id === id);
-      
-      // Update UI immediately
-      dispatch({ type: 'DELETE_PROJECT', payload: id });
-      
-      // Delete from Firebase
+      // Delete from Firebase FIRST, before updating UI
       await projectsService.delete(id);
+      
+      // Only update UI after successful deletion
+      dispatch({ type: 'DELETE_PROJECT', payload: id });
     } catch (error) {
       console.error('Error deleting project:', error);
-      // If deletion failed, restore the project
-      if (projectToDelete) {
-        dispatch({ type: 'ADD_PROJECT', payload: projectToDelete });
-      }
       throw error;
     }
   };
@@ -960,7 +952,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Optimistic update: Add new category to state immediately
       const newCategory: UserCategory = {
         ...categoryData,
-        id: parseInt(categoryId),
+        id: categoryId, // Keep as string
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -971,7 +963,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUserCategory = async (id: number, categoryData: Partial<UserCategory>) => {
+  const updateUserCategory = async (id: string, categoryData: Partial<UserCategory>) => {
     let originalCategory: UserCategory | undefined;
     try {
       // Get the original category for potential rollback
@@ -1004,23 +996,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const deleteUserCategory = async (id: number) => {
-    let categoryToDelete: UserCategory | undefined;
+  const deleteUserCategory = async (id: string) => {
     try {
-      // Store the category for potential rollback
-      categoryToDelete = state.userCategories.find(category => category.id === id);
-      
-      // Update UI immediately
-      dispatch({ type: 'DELETE_USER_CATEGORY', payload: id });
-      
-      // Delete from Firebase
+      // Delete from Firebase FIRST, before updating UI
       await userCategoriesService.delete(id);
+      
+      // Only update UI after successful deletion
+      dispatch({ type: 'DELETE_USER_CATEGORY', payload: id });
     } catch (error) {
       console.error('Error deleting user category:', error);
-      // If deletion failed, restore the category
-      if (categoryToDelete) {
-        dispatch({ type: 'ADD_USER_CATEGORY', payload: categoryToDelete });
-      }
       throw error;
     }
   };

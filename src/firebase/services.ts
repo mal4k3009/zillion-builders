@@ -383,9 +383,6 @@ export const tasksService = {
         ? chairmen.sort((a, b) => b.id - a.id)[0] 
         : users.find(u => u.role === 'master');
       
-      console.log('🔍 Found chairmen:', chairmen.map(c => `ID: ${c.id}, Name: ${c.name}, Role: ${c.role}, Designation: ${c.designation}`));
-      console.log('✅ Selected chairman for approval:', chairman ? `ID: ${chairman.id}, Name: ${chairman.name}` : 'None');
-      
       // Create approval entry for chairman
       const chairmanApprovalEntry = {
         id: `${taskId}_chairman_${Date.now()}`,
@@ -513,8 +510,6 @@ export const tasksService = {
   },
 
   async getTasksAwaitingApproval(userId: number, role: 'director' | 'master' | 'chairman'): Promise<Task[]> {
-    console.log('🔍 getTasksAwaitingApproval called', { userId, role });
-    
     let approvalLevel: string;
     let statusToQuery: string;
     
@@ -529,8 +524,6 @@ export const tasksService = {
       statusToQuery = 'pending_director_approval';
     }
     
-    console.log('📊 Query parameters', { approvalLevel, statusToQuery });
-    
     const q = query(
       collection(db, 'tasks'),
       where('currentApprovalLevel', '==', approvalLevel),
@@ -544,33 +537,14 @@ export const tasksService = {
       ...doc.data() 
     } as Task));
 
-    console.log('📋 Tasks from query', { 
-      count: tasks.length,
-      tasks: tasks.map(t => ({
-        id: t.id,
-        title: t.title,
-        status: t.status,
-        currentApprovalLevel: t.currentApprovalLevel,
-        approvalChain: t.approvalChain
-      }))
-    });
-
     // Additional filtering based on assigned approver
     const filteredTasks = tasks.filter(task => {
       const pendingApproval = task.approvalChain.find(
         approval => approval.approverRole === approvalLevel && approval.status === 'pending'
       );
-      const matches = pendingApproval?.approverUserId === userId;
-      console.log('🔍 Task filter check', {
-        taskId: task.id,
-        pendingApproval,
-        userId,
-        matches
-      });
-      return matches;
+      return pendingApproval?.approverUserId === userId;
     });
     
-    console.log('✅ Final filtered tasks', { count: filteredTasks.length });
     return filteredTasks;
   },
 
@@ -705,15 +679,10 @@ export const chatService = {
               (msg.senderId === userId1 && msg.receiverId === userId2) ||
               (msg.senderId === userId2 && msg.receiverId === userId1);
             
-            if (isConversationMessage) {
-              console.log(`📨 Found conversation message: ${msg.senderId} → ${msg.receiverId}: ${msg.content?.substring(0, 50)}...`);
-            }
-            
             return isConversationMessage;
           })
           .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
         
-        console.log(`📋 Filtered conversation messages: ${conversationMessages.length} for users ${userId1} ↔ ${userId2}`);
         callback(conversationMessages);
       } catch (error) {
         console.error('Error processing conversation messages:', error);
@@ -919,8 +888,6 @@ export const notificationsService = {
     
     return onSnapshot(q, (querySnapshot) => {
       try {
-        console.log(`📨 Notification update received! ${querySnapshot.docs.length} notifications found`);
-        
         const notifications = querySnapshot.docs
           .map(doc => {
             const data = doc.data();
@@ -1319,7 +1286,7 @@ export const userCategoriesService = {
   async getAll(): Promise<UserCategory[]> {
     const querySnapshot = await getDocs(collection(db, 'userCategories'));
     return querySnapshot.docs.map(doc => ({
-      id: parseInt(doc.id),
+      id: doc.id, // Keep as string
       ...doc.data()
     } as UserCategory));
   },
@@ -1333,16 +1300,16 @@ export const userCategoriesService = {
     return docRef.id;
   },
 
-  async update(id: number, categoryData: Partial<UserCategory>): Promise<void> {
-    const docRef = doc(db, 'userCategories', id.toString());
+  async update(id: string, categoryData: Partial<UserCategory>): Promise<void> {
+    const docRef = doc(db, 'userCategories', id);
     await updateDoc(docRef, {
       ...categoryData,
       updatedAt: serverTimestamp()
     });
   },
 
-  async delete(id: number): Promise<void> {
-    const docRef = doc(db, 'userCategories', id.toString());
+  async delete(id: string): Promise<void> {
+    const docRef = doc(db, 'userCategories', id);
     await deleteDoc(docRef);
   },
 
@@ -1350,7 +1317,7 @@ export const userCategoriesService = {
     const q = query(collection(db, 'userCategories'), where('assignedUsers', 'array-contains', userId));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
-      id: parseInt(doc.id),
+      id: doc.id, // Keep as string
       ...doc.data()
     } as UserCategory));
   }
