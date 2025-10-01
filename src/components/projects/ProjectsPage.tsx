@@ -109,7 +109,7 @@ export function ProjectsPage() {
     }
   };
 
-  const handleDeleteProject = async (projectId: number) => {
+  const handleDeleteProject = async (projectId: string) => {
     if (window.confirm('Are you sure you want to delete this project? This will also delete all associated categories.')) {
       try {
         await deleteProject(projectId);
@@ -158,7 +158,7 @@ export function ProjectsPage() {
     }
   };
 
-  const handleDeleteCategory = async (categoryId: number) => {
+  const handleDeleteCategory = async (categoryId: string) => {
     if (window.confirm('Are you sure you want to delete this category?')) {
       try {
         await deleteCategory(categoryId);

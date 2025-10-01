@@ -102,11 +102,18 @@ export const usersService = {
   },
 
   async update(id: number, userData: Partial<User>): Promise<void> {
-    const docRef = doc(db, 'users', id.toString());
-    await updateDoc(docRef, {
-      ...userData,
-      updatedAt: serverTimestamp()
-    });
+    try {
+      console.log('Updating user:', id, 'with data:', userData);
+      const docRef = doc(db, 'users', id.toString());
+      await updateDoc(docRef, {
+        ...userData,
+        updatedAt: serverTimestamp()
+      });
+      console.log('User updated successfully');
+    } catch (error) {
+      console.error('Error updating user in Firebase:', error);
+      throw error;
+    }
   },
 
   async delete(id: number): Promise<void> {
@@ -199,12 +206,19 @@ export const tasksService = {
   },
 
   async update(id: string, taskData: Partial<Task>): Promise<void> {
-    const docRef = doc(db, 'tasks', id);
-    const cleanedData = cleanUndefinedFields(taskData);
-    await updateDoc(docRef, {
-      ...cleanedData,
-      updatedAt: serverTimestamp()
-    });
+    try {
+      const docRef = doc(db, 'tasks', id);
+      const cleanedData = cleanUndefinedFields(taskData);
+      console.log('Updating task:', id, 'with data:', cleanedData);
+      await updateDoc(docRef, {
+        ...cleanedData,
+        updatedAt: serverTimestamp()
+      });
+      console.log('Task updated successfully');
+    } catch (error) {
+      console.error('Error updating task in Firebase:', error);
+      throw error;
+    }
   },
 
   async getPausedTasksForReactivation(): Promise<Task[]> {
@@ -239,7 +253,14 @@ export const tasksService = {
   },
 
   async delete(id: string): Promise<void> {
-    await deleteDoc(doc(db, 'tasks', id));
+    try {
+      console.log('Deleting task:', id);
+      await deleteDoc(doc(db, 'tasks', id));
+      console.log('Task deleted successfully');
+    } catch (error) {
+      console.error('Error deleting task from Firebase:', error);
+      throw error;
+    }
   },
 
   // Real-time subscription
@@ -459,7 +480,41 @@ export const tasksService = {
     return this.approveByChairman(taskId, approved, rejectionReason);
   },
 
+  // New method: Director completes task and sends directly to chairman approval
+  async markAsCompletedByDirector(taskId: string): Promise<void> {
+    const docRef = doc(db, 'tasks', taskId);
+    const task = await this.getById(taskId);
+    
+    if (!task) throw new Error('Task not found');
+    
+    // Find a chairman user to assign the approval to
+    const users = await usersService.getAll();
+    const chairmen = users.filter(u => u.role === 'chairman' || u.designation === 'chairman');
+    const chairman = chairmen.length > 0 
+      ? chairmen.sort((a, b) => b.id - a.id)[0] 
+      : users.find(u => u.role === 'master');
+    
+    // Create approval entry for chairman (skip employee assignment)
+    const chairmanApprovalEntry = {
+      id: `${taskId}_chairman_${Date.now()}`,
+      taskId,
+      approverUserId: chairman?.id || task.createdBy,
+      approverRole: 'chairman' as const,
+      status: 'pending' as const,
+      createdAt: new Date().toISOString()
+    };
+
+    await updateDoc(docRef, {
+      status: 'pending_chairman_approval',
+      currentApprovalLevel: 'chairman',
+      approvalChain: [chairmanApprovalEntry],
+      updatedAt: serverTimestamp()
+    });
+  },
+
   async getTasksAwaitingApproval(userId: number, role: 'director' | 'master' | 'chairman'): Promise<Task[]> {
+    console.log('🔍 getTasksAwaitingApproval called', { userId, role });
+    
     let approvalLevel: string;
     let statusToQuery: string;
     
@@ -474,6 +529,8 @@ export const tasksService = {
       statusToQuery = 'pending_director_approval';
     }
     
+    console.log('📊 Query parameters', { approvalLevel, statusToQuery });
+    
     const q = query(
       collection(db, 'tasks'),
       where('currentApprovalLevel', '==', approvalLevel),
@@ -487,13 +544,34 @@ export const tasksService = {
       ...doc.data() 
     } as Task));
 
+    console.log('📋 Tasks from query', { 
+      count: tasks.length,
+      tasks: tasks.map(t => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        currentApprovalLevel: t.currentApprovalLevel,
+        approvalChain: t.approvalChain
+      }))
+    });
+
     // Additional filtering based on assigned approver
-    return tasks.filter(task => {
+    const filteredTasks = tasks.filter(task => {
       const pendingApproval = task.approvalChain.find(
         approval => approval.approverRole === approvalLevel && approval.status === 'pending'
       );
-      return pendingApproval?.approverUserId === userId;
+      const matches = pendingApproval?.approverUserId === userId;
+      console.log('🔍 Task filter check', {
+        taskId: task.id,
+        pendingApproval,
+        userId,
+        matches
+      });
+      return matches;
     });
+    
+    console.log('✅ Final filtered tasks', { count: filteredTasks.length });
+    return filteredTasks;
   },
 
   async submitForReapproval(taskId: string, reapprovalReason: string): Promise<void> {
@@ -1088,16 +1166,16 @@ export const projectsService = {
       
       // Get categories for this project
       const categoriesSnapshot = await getDocs(
-        query(collection(db, 'categories'), where('projectId', '==', parseInt(projectDoc.id)))
+        query(collection(db, 'categories'), where('projectId', '==', projectDoc.id))
       );
       
       const categories = categoriesSnapshot.docs.map(categoryDoc => ({
-        id: parseInt(categoryDoc.id),
+        id: categoryDoc.id, // Keep as string
         ...categoryDoc.data()
       } as Category));
       
       projects.push({
-        id: parseInt(projectDoc.id),
+        id: projectDoc.id, // Keep as string
         ...projectData,
         categories
       } as Project);
@@ -1106,8 +1184,8 @@ export const projectsService = {
     return projects;
   },
 
-  async getById(id: number): Promise<Project | null> {
-    const docRef = doc(db, 'projects', id.toString());
+  async getById(id: string): Promise<Project | null> {
+    const docRef = doc(db, 'projects', id);
     const docSnap = await getDoc(docRef);
     
     if (!docSnap.exists()) return null;
@@ -1118,7 +1196,7 @@ export const projectsService = {
     );
     
     const categories = categoriesSnapshot.docs.map(categoryDoc => ({
-      id: parseInt(categoryDoc.id),
+      id: categoryDoc.id, // Keep as string
       ...categoryDoc.data()
     } as Category));
     
@@ -1138,29 +1216,44 @@ export const projectsService = {
     return docRef.id;
   },
 
-  async update(id: number, projectData: Partial<Project>): Promise<void> {
-    const docRef = doc(db, 'projects', id.toString());
-    await updateDoc(docRef, {
-      ...projectData,
-      updatedAt: serverTimestamp()
-    });
+  async update(id: string, projectData: Partial<Project>): Promise<void> {
+    try {
+      console.log('Updating project:', id, 'with data:', projectData);
+      const docRef = doc(db, 'projects', id);
+      await updateDoc(docRef, {
+        ...projectData,
+        updatedAt: serverTimestamp()
+      });
+      console.log('Project updated successfully');
+    } catch (error) {
+      console.error('Error updating project in Firebase:', error);
+      throw error;
+    }
   },
 
-  async delete(id: number): Promise<void> {
-    // First delete all categories associated with this project
-    const categoriesSnapshot = await getDocs(
-      query(collection(db, 'categories'), where('projectId', '==', id))
-    );
-    
-    const deletePromises = categoriesSnapshot.docs.map(categoryDoc => 
-      deleteDoc(doc(db, 'categories', categoryDoc.id))
-    );
-    
-    await Promise.all(deletePromises);
-    
-    // Then delete the project
-    const docRef = doc(db, 'projects', id.toString());
-    await deleteDoc(docRef);
+  async delete(id: string): Promise<void> {
+    try {
+      console.log('Deleting project:', id);
+      // First delete all categories associated with this project
+      const categoriesSnapshot = await getDocs(
+        query(collection(db, 'categories'), where('projectId', '==', id))
+      );
+      
+      const deletePromises = categoriesSnapshot.docs.map(categoryDoc => 
+        deleteDoc(doc(db, 'categories', categoryDoc.id))
+      );
+      
+      await Promise.all(deletePromises);
+      console.log('Associated categories deleted');
+      
+      // Then delete the project
+      const docRef = doc(db, 'projects', id);
+      await deleteDoc(docRef);
+      console.log('Project deleted successfully');
+    } catch (error) {
+      console.error('Error deleting project from Firebase:', error);
+      throw error;
+    }
   }
 };
 
@@ -1169,16 +1262,16 @@ export const categoriesService = {
   async getAll(): Promise<Category[]> {
     const querySnapshot = await getDocs(collection(db, 'categories'));
     return querySnapshot.docs.map(doc => ({
-      id: parseInt(doc.id),
+      id: doc.id, // Keep as string
       ...doc.data()
     } as Category));
   },
 
-  async getByProjectId(projectId: number): Promise<Category[]> {
+  async getByProjectId(projectId: string): Promise<Category[]> {
     const q = query(collection(db, 'categories'), where('projectId', '==', projectId));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({
-      id: parseInt(doc.id),
+      id: doc.id, // Keep as string
       ...doc.data()
     } as Category));
   },
@@ -1191,20 +1284,20 @@ export const categoriesService = {
     return docRef.id;
   },
 
-  async update(id: number, categoryData: Partial<Category>): Promise<void> {
-    const docRef = doc(db, 'categories', id.toString());
+  async update(id: string, categoryData: Partial<Category>): Promise<void> {
+    const docRef = doc(db, 'categories', id);
     await updateDoc(docRef, categoryData);
   },
 
-  async delete(id: number): Promise<void> {
-    const docRef = doc(db, 'categories', id.toString());
+  async delete(id: string): Promise<void> {
+    const docRef = doc(db, 'categories', id);
     await deleteDoc(docRef);
   },
 
   // Get all categories for dropdown/selection purposes
-  async getAllForSelection(): Promise<Array<{id: number, name: string, color?: string, projectName: string}>> {
+  async getAllForSelection(): Promise<Array<{id: string, name: string, color?: string, projectName: string}>> {
     const projects = await projectsService.getAll();
-    const allCategories: Array<{id: number, name: string, color?: string, projectName: string}> = [];
+    const allCategories: Array<{id: string, name: string, color?: string, projectName: string}> = [];
     
     projects.forEach(project => {
       project.categories.forEach(category => {

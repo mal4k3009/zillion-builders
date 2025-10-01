@@ -38,9 +38,8 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const priority = priorityLevels.find(p => p.id === task.priority);
   const status = taskStatuses.find(s => s.id === task.status);
   
-  // Find project and user category from backend data
+  // Find project from backend data
   const project = state.projects.find(p => p.id === task.projectId);
-  const userCategory = state.userCategories.find(c => c.id === task.categoryId);
   
   const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'completed' && task.status !== 'paused';
   const canEdit = state.currentUser?.role === 'master' || 
@@ -54,6 +53,7 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const canAssignToEmployee = currentUserRole === 'director' && task.status === 'assigned_to_director';
   const canMarkInProgress = currentUserRole === 'employee' && task.status === 'assigned_to_employee' && task.assignedTo === currentUserId;
   const canMarkComplete = currentUserRole === 'employee' && task.status === 'in_progress' && task.assignedTo === currentUserId;
+  const canDirectorComplete = currentUserRole === 'director' && (task.status === 'assigned_to_director' || task.status === 'in_progress') && task.assignedDirector === currentUserId;
   const canApproveAsDirector = currentUserRole === 'director' && task.status === 'pending_director_approval' && task.assignedDirector === currentUserId;
   const canApproveAsAdmin = currentUserRole === 'master' && task.status === 'pending_admin_approval' && task.createdBy === currentUserId;
   const canApproveAsChairman = (currentUserRole === 'chairman' || (currentUserRole === 'master' && state.currentUser?.designation === 'chairman')) && 
@@ -165,6 +165,15 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
       // Update will be reflected via real-time listener, no reload needed
     } catch (error) {
       console.error('Error marking as complete:', error);
+    }
+  };
+
+  const handleDirectorComplete = async () => {
+    try {
+      await tasksService.markAsCompletedByDirector(task.id);
+      // Update will be reflected via real-time listener, no reload needed
+    } catch (error) {
+      console.error('Error completing task as director:', error);
     }
   };
 
@@ -287,19 +296,6 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
           </div>
         )}
 
-        {/* Category Information */}
-        {userCategory && (
-          <div className="flex items-center gap-2">
-            <div 
-              className="w-2 h-2 sm:w-3 sm:h-3 rounded-full flex-shrink-0" 
-              style={{ backgroundColor: userCategory.color || '#6B7280' }}
-            />
-            <span className="text-xs sm:text-sm text-medium-gray truncate">
-              🏷️ {userCategory.name}
-            </span>
-          </div>
-        )}
-
         <div className={`px-2 py-1 rounded-full text-xs font-medium flex-shrink-0`} style={{ 
           backgroundColor: `${priority?.color}20`, 
           color: priority?.color 
@@ -415,6 +411,17 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
             </button>
           )}
 
+          {/* Complete Task Button for Directors - sends directly to chairman approval */}
+          {canDirectorComplete && (
+            <button
+              onClick={handleDirectorComplete}
+              className="flex items-center gap-1 px-3 py-1 bg-purple-500 text-white text-xs rounded-lg hover:bg-purple-600 transition-colors"
+            >
+              <CheckCircle className="w-3 h-3" />
+              Complete & Send to Chairman
+            </button>
+          )}
+
           {/* Approval Buttons for Directors, Admins, and Chairmen */}
           {(canApproveAsDirector || canApproveAsAdmin || canApproveAsChairman) && (
             <>
@@ -485,8 +492,8 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
             </select>
           )}
 
-          {/* Regular Status Dropdown for Other Cases */}
-          {!canMarkComplete && !canApproveAsDirector && !canApproveAsAdmin && !canApproveAsChairman && !canAssignToDirector && !canAssignToEmployee && canEdit && (
+          {/* Regular Status Dropdown for Directors and Chairmen only */}
+          {!canMarkComplete && !canApproveAsDirector && !canApproveAsAdmin && !canApproveAsChairman && !canAssignToDirector && !canAssignToEmployee && canEdit && currentUserRole !== 'employee' && (
             <select
               value={task.status}
               onChange={(e) => handleStatusChange(e.target.value)}
@@ -498,6 +505,16 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
                 </option>
               ))}
             </select>
+          )}
+
+          {/* Status Display for Employees - Simple Text Message */}
+          {!canMarkComplete && !canApproveAsDirector && !canApproveAsAdmin && !canApproveAsChairman && !canAssignToDirector && !canAssignToEmployee && canEdit && currentUserRole === 'employee' && (
+            <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium w-fit`} style={{ 
+              backgroundColor: `${status?.color}20`, 
+              color: status?.color 
+            }}>
+              {status?.name}
+            </div>
           )}
           
           {/* Status Display for Non-editable Cases */}

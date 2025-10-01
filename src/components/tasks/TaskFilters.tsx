@@ -22,6 +22,15 @@ const taskStatuses = [
   { id: 'paused', name: 'Paused', color: '#8B5CF6' }
 ];
 
+// Staff-specific statuses for button layout
+const staffStatuses = [
+  { id: 'pending', name: 'Pending', color: '#6B7280' },
+  { id: 'in-progress', name: 'In Progress', color: '#F59E0B' },
+  { id: 'pending_director_approval', name: 'Sent for Approval', color: '#8B5CF6' },
+  { id: 'completed', name: 'Complete', color: '#10B981' },
+  { id: 'rejected', name: 'Re-approval', color: '#EF4444' }
+];
+
 interface TaskFiltersProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
@@ -120,18 +129,52 @@ export function TaskFilters({
           ))}
         </select>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => onStatusChange(e.target.value)}
-          className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm lg:text-base border border-light-gray dark:border-soft-black rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold dark:bg-dark-gray dark:text-pure-white"
-        >
-          <option value="">All Statuses</option>
-          {taskStatuses.map(status => (
-            <option key={status.id} value={status.id}>
-              {status.name}
-            </option>
-          ))}
-        </select>
+        {/* Status Filter - Dropdown for non-staff, Buttons for staff */}
+        {state.currentUser?.role === 'employee' ? (
+          <div className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => onStatusChange('')}
+                className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                  statusFilter === '' 
+                    ? 'bg-brand-gold text-white' 
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                All
+              </button>
+              {staffStatuses.map(status => (
+                <button
+                  key={status.id}
+                  onClick={() => onStatusChange(status.id)}
+                  className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
+                    statusFilter === status.id 
+                      ? 'text-white' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                  style={{
+                    backgroundColor: statusFilter === status.id ? status.color : undefined
+                  }}
+                >
+                  {status.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <select
+            value={statusFilter}
+            onChange={(e) => onStatusChange(e.target.value)}
+            className="px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm lg:text-base border border-light-gray dark:border-soft-black rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-gold dark:bg-dark-gray dark:text-pure-white"
+          >
+            <option value="">All Statuses</option>
+            {taskStatuses.map(status => (
+              <option key={status.id} value={status.id}>
+                {status.name}
+              </option>
+            ))}
+          </select>
+        )}
 
         <select
           value={priorityFilter}

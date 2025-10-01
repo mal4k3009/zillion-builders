@@ -56,7 +56,7 @@ type AppAction =
   | { type: 'SET_PROJECTS'; payload: Project[] }
   | { type: 'ADD_PROJECT'; payload: Project }
   | { type: 'UPDATE_PROJECT'; payload: Project }
-  | { type: 'DELETE_PROJECT'; payload: number }
+  | { type: 'DELETE_PROJECT'; payload: string }
   | { type: 'SET_USER_CATEGORIES'; payload: UserCategory[] }
   | { type: 'ADD_USER_CATEGORY'; payload: UserCategory }
   | { type: 'UPDATE_USER_CATEGORY'; payload: UserCategory }
@@ -273,11 +273,11 @@ interface AppContextType {
   logout: () => Promise<void>;
   // Project management functions
   createProject: (projectData: Omit<Project, 'id' | 'categories'>) => Promise<void>;
-  updateProject: (id: number, projectData: Partial<Project>) => Promise<void>;
-  deleteProject: (id: number) => Promise<void>;
+  updateProject: (id: string, projectData: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
   createCategory: (categoryData: Omit<Category, 'id'>) => Promise<void>;
-  updateCategory: (id: number, categoryData: Partial<Category>) => Promise<void>;
-  deleteCategory: (id: number) => Promise<void>;
+  updateCategory: (id: string, categoryData: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   // User category management functions
   createUserCategory: (categoryData: Omit<UserCategory, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updateUserCategory: (id: number, categoryData: Partial<UserCategory>) => Promise<void>;
@@ -854,7 +854,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Optimistic update: Add new project to state immediately
       const newProject: Project = {
         ...projectData,
-        id: parseInt(projectId),
+        id: projectId, // Keep as string
         categories: []
       };
       dispatch({ type: 'ADD_PROJECT', payload: newProject });
@@ -864,7 +864,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProject = async (id: number, projectData: Partial<Project>) => {
+  const updateProject = async (id: string, projectData: Partial<Project>) => {
     let originalProject: Project | undefined;
     try {
       // Get the original project for potential rollback
@@ -893,7 +893,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const deleteProject = async (id: number) => {
+  const deleteProject = async (id: string) => {
     let projectToDelete: Project | undefined;
     try {
       // Store the project for potential rollback
@@ -928,7 +928,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateCategory = async (id: number, categoryData: Partial<Category>) => {
+  const updateCategory = async (id: string, categoryData: Partial<Category>) => {
     try {
       await categoriesService.update(id, categoryData);
       
@@ -940,7 +940,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const deleteCategory = async (id: number) => {
+  const deleteCategory = async (id: string) => {
     try {
       await categoriesService.delete(id);
       

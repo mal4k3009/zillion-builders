@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Calendar, User } from 'lucide-react';
-import { Task, Project, UserCategory } from '../../types';
+import { Task, Project, UserCategory, User as UserType } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { projectsService, userCategoriesService, tasksService } from '../../firebase/services';
 import { priorityLevels, taskStatuses } from '../../data/mockData';
@@ -29,7 +29,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [showAssigneeModal, setShowAssigneeModal] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string>('');
-  const [assignableUsers, setAssignableUsers] = useState<any[]>([]);
+  const [assignableUsers, setAssignableUsers] = useState<UserType[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -39,17 +39,21 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
     assignedTo: '',
     priority: 'medium' as Task['priority'],
     status: 'pending' as Task['status'],
-    dueDate: ''
+    dueDate: '',
+    isPrivate: false // New field for privacy
   });
 
   // Load user categories and projects when component mounts
   useEffect(() => {
     const loadData = async () => {
       try {
+        console.log('Loading TaskModal data...');
         const [allUserCategories, allProjects] = await Promise.all([
           userCategoriesService.getAll(),
           projectsService.getAll()
         ]);
+        console.log('Loaded userCategories:', allUserCategories);
+        console.log('Loaded projects:', allProjects);
         setUserCategories(allUserCategories);
         setProjects(allProjects);
       } catch (error) {
@@ -75,7 +79,8 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
         assignedTo: task.assignedTo.toString(),
         priority: task.priority,
         status: task.status,
-        dueDate: new Date(task.dueDate).toISOString().slice(0, 16)
+        dueDate: new Date(task.dueDate).toISOString().slice(0, 16),
+        isPrivate: task.isPrivate || false
       });
     } else {
       setFormData({
@@ -87,7 +92,8 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
         assignedTo: '',
         priority: 'medium',
         status: 'pending',
-        dueDate: ''
+        dueDate: '',
+        isPrivate: false
       });
     }
   }, [task, isOpen]);
@@ -134,6 +140,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       createdBy: state.currentUser?.id || 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      isPrivate: formData.isPrivate,
       tags: [],
       subtasks: [],
       comments: [],
@@ -146,17 +153,23 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
     // Add optional fields only if they have values
     const taskData: Partial<Task> & typeof baseTaskData = { ...baseTaskData };
     
+    console.log('Form data before submission:', formData);
+    
     if (formData.description) {
       taskData.description = formData.description;
     }
     
     if (formData.projectId) {
-      taskData.projectId = parseInt(formData.projectId);
+      console.log('Adding projectId:', formData.projectId);
+      taskData.projectId = formData.projectId; // Keep as string
     }
     
     if (formData.userCategoryId) {
+      console.log('Adding categoryId:', formData.userCategoryId, 'parsed:', parseInt(formData.userCategoryId));
       taskData.categoryId = parseInt(formData.userCategoryId);
     }
+    
+    console.log('Final task data:', taskData);
     
     // Add paused tracking fields only if status is paused
     if (formData.status === 'paused') {
@@ -230,6 +243,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       approvalStatus: submitData.approvalStatus,
+      isPrivate: submitData.isPrivate,
       tags: [],
       subtasks: [],
       comments: [],
@@ -246,7 +260,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
     }
     
     if (submitData.projectId) {
-      taskData.projectId = parseInt(submitData.projectId);
+      taskData.projectId = submitData.projectId; // Keep as string
     }
     
     if (submitData.userCategoryId) {
@@ -492,6 +506,17 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                     </span>
                   </div>
                 </div>
+
+                {/* Privacy Status */}
+                {task?.isPrivate && (
+                  <div className="sm:col-span-2">
+                    <div className="flex items-center gap-2 p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                      <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
+                        🔒 Private Task
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {task?.comments && task.comments.length > 0 && (
@@ -717,6 +742,23 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
                     required
                   />
                 </div>
+              </div>
+
+              {/* Privacy Option */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="isPrivate"
+                  checked={formData.isPrivate}
+                  onChange={(e) => setFormData({ ...formData, isPrivate: e.target.checked })}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                />
+                <label htmlFor="isPrivate" className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Send as Private Task
+                  <span className="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    When enabled, this task will be sent privately to the assignee only
+                  </span>
+                </label>
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 lg:gap-4 pt-3 sm:pt-4 lg:pt-6">

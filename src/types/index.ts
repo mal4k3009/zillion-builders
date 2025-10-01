@@ -39,7 +39,7 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   createdBy: number;
-  projectId?: number;
+  projectId?: string; // Changed to string to match Project.id
   categoryId?: number;
   comments: TaskComment[];
   attachments: TaskAttachment[];
@@ -54,6 +54,7 @@ export interface Task {
   currentApprovalLevel: 'none' | 'director' | 'admin' | 'chairman'; // Who needs to approve next
   rejectionReason?: string; // Reason for rejection
   reapprovalReason?: string; // Reason for reapproval submission
+  isPrivate?: boolean; // Privacy flag for task assignment
 }
 
 export interface TaskComment {
@@ -131,7 +132,7 @@ export interface Activity {
 }
 
 export interface Project {
-  id: number;
+  id: string; // Changed to string for Firebase compatibility
   name: string;
   description: string;
   status: 'active' | 'inactive' | 'completed';
@@ -142,11 +143,11 @@ export interface Project {
 }
 
 export interface Category {
-  id: number;
+  id: string; // Changed to string for Firebase compatibility
   name: string;
   description?: string;
   color?: string;
-  projectId: number;
+  projectId: string; // Changed to string to match Project.id
   createdAt: string;
 }
 
