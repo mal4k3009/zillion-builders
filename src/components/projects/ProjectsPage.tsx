@@ -13,6 +13,10 @@ export function ProjectsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive' | 'completed'>('all');
 
+  // Check if current user can edit projects/categories (only master and chairman)
+  const canEdit = state.currentUser?.role === 'master' || 
+                  (state.currentUser?.role === 'director' && state.currentUser?.designation === 'chairman');
+  
   const [projectForm, setProjectForm] = useState<{
     name: string;
     description: string;
@@ -198,13 +202,15 @@ export function ProjectsPage() {
             Manage projects and their categories for task organization
           </p>
         </div>
-        <button
-          onClick={() => openProjectModal()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-xs sm:text-sm"
-        >
-          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-          New Project
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => openProjectModal()}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-xs sm:text-sm"
+          >
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+            New Project
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -251,18 +257,22 @@ export function ProjectsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
-                <button
-                  onClick={() => openProjectModal(project)}
-                  className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                >
-                  <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteProject(project.id)}
-                  className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                >
-                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                </button>
+                {canEdit && (
+                  <>
+                    <button
+                      onClick={() => openProjectModal(project)}
+                      className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                    >
+                      <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteProject(project.id)}
+                      className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                    >
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
@@ -273,13 +283,15 @@ export function ProjectsPage() {
             <div className="space-y-2 sm:space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">Categories</span>
-                <button
-                  onClick={() => openCategoryModal(undefined, project)}
-                  className="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-xs sm:text-sm flex items-center gap-1"
-                >
-                  <Plus className="w-3 h-3" />
-                  Add
-                </button>
+                {canEdit && (
+                  <button
+                    onClick={() => openCategoryModal(undefined, project)}
+                    className="text-blue-600 hover:text-blue-700 dark:text-blue-400 text-xs sm:text-sm flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add
+                  </button>
+                )}
               </div>
 
               <div className="space-y-1 sm:space-y-2 max-h-24 sm:max-h-32 overflow-y-auto">
@@ -293,18 +305,22 @@ export function ProjectsPage() {
                       <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 truncate">{category.name}</span>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      <button
-                        onClick={() => openCategoryModal(category, project)}
-                        className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                      >
-                        <Edit className="w-3 h-3" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCategory(category.id)}
-                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                      {canEdit && (
+                        <>
+                          <button
+                            onClick={() => openCategoryModal(category, project)}
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                          >
+                            <Edit className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCategory(category.id)}
+                            className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}

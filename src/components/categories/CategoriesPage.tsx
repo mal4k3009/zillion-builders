@@ -16,6 +16,10 @@ export function CategoriesPage() {
     color: '#3B82F6'
   });
 
+  // Check if current user can edit categories (only master and chairman)
+  const canEdit = state.currentUser?.role === 'master' || 
+                  (state.currentUser?.role === 'director' && state.currentUser?.designation === 'chairman');
+
   // Filter categories based on search term
   const filteredCategories = state.userCategories?.filter(category =>
     category.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -123,13 +127,15 @@ export function CategoriesPage() {
             Create and manage user categories
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-2 bg-brand-gold hover:bg-accent-gold text-pure-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs sm:text-sm"
-        >
-          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-          Create Category
-        </button>
+        {canEdit && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="inline-flex items-center gap-2 bg-brand-gold hover:bg-accent-gold text-pure-white px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-xs sm:text-sm"
+          >
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+            Create Category
+          </button>
+        )}
       </div>
 
       {/* Search */}
@@ -159,27 +165,31 @@ export function CategoriesPage() {
                 </h3>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
-                <button
-                  onClick={() => openAssignModal(category)}
-                  className="p-1 text-blue-600 hover:text-blue-700 transition-colors"
-                  title="Assign Users"
-                >
-                  <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-                </button>
-                <button
-                  onClick={() => openEditModal(category)}
-                  className="p-1 text-gray-600 hover:text-gray-700 transition-colors"
-                  title="Edit Category"
-                >
-                  <Edit2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteCategory(category.id)}
-                  className="p-1 text-red-600 hover:text-red-700 transition-colors"
-                  title="Delete Category"
-                >
-                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                </button>
+                {canEdit && (
+                  <>
+                    <button
+                      onClick={() => openAssignModal(category)}
+                      className="p-1 text-blue-600 hover:text-blue-700 transition-colors"
+                      title="Assign Users"
+                    >
+                      <Users className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </button>
+                    <button
+                      onClick={() => openEditModal(category)}
+                      className="p-1 text-gray-600 hover:text-gray-700 transition-colors"
+                      title="Edit Category"
+                    >
+                      <Edit2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(category.id)}
+                      className="p-1 text-red-600 hover:text-red-700 transition-colors"
+                      title="Delete Category"
+                    >
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 

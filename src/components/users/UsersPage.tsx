@@ -12,6 +12,10 @@ export function UsersPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Check if current user can edit users (only master and chairman)
+  const canEdit = state.currentUser?.role === 'master' || 
+                  (state.currentUser?.role === 'director' && state.currentUser?.designation === 'chairman');
+
   // Show all users except the current user for master role users
   const displayUsers = state.users.filter(u => u.id !== state.currentUser?.id);
   
@@ -72,13 +76,15 @@ export function UsersPage() {
         <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-deep-charcoal dark:text-pure-white">
           User Management
         </h1>
-        <button
-          onClick={handleCreateUser}
-          className="bg-brand-gold hover:bg-accent-gold text-pure-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 transition-colors text-xs sm:text-sm lg:text-base w-fit"
-        >
-          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span>Add User</span>
-        </button>
+        {canEdit && (
+          <button
+            onClick={handleCreateUser}
+            className="bg-brand-gold hover:bg-accent-gold text-pure-white px-3 sm:px-4 py-2 rounded-lg flex items-center gap-1.5 sm:gap-2 transition-colors text-xs sm:text-sm lg:text-base w-fit"
+          >
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+            <span>Add User</span>
+          </button>
+        )}
       </div>
 
       <div className="bg-pure-white dark:bg-dark-gray rounded-lg sm:rounded-xl shadow-sm border border-light-gray dark:border-soft-black p-3 sm:p-4 lg:p-6">
@@ -114,18 +120,22 @@ export function UsersPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleEditUser(user)}
-                    className="p-1.5 text-medium-gray hover:text-brand-gold hover:bg-brand-gold/10 rounded-lg transition-colors"
-                  >
-                    <Edit className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteUser(user.id)}
-                    className="p-1.5 text-medium-gray hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
+                  {canEdit && (
+                    <>
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="p-1.5 text-medium-gray hover:text-brand-gold hover:bg-brand-gold/10 rounded-lg transition-colors"
+                      >
+                        <Edit className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="p-1.5 text-medium-gray hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between">
@@ -133,16 +143,26 @@ export function UsersPage() {
                   <Shield className="w-2 h-2" />
                   {user.designation}
                 </span>
-                <button
-                  onClick={() => toggleUserStatus(user)}
-                  className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                {canEdit ? (
+                  <button
+                    onClick={() => toggleUserStatus(user)}
+                    className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full transition-colors ${
+                      user.status === 'active'
+                        ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300'
+                        : 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300'
+                    }`}
+                  >
+                    {user.status === 'active' ? '● Active' : '● Inactive'}
+                  </button>
+                ) : (
+                  <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
                     user.status === 'active'
-                      ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300'
-                      : 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300'
-                  }`}
-                >
-                  {user.status === 'active' ? '● Active' : '● Inactive'}
-                </button>
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                  }`}>
+                    {user.status === 'active' ? '● Active' : '● Inactive'}
+                  </span>
+                )}
               </div>
               <div className="mt-2 text-xs text-medium-gray">
                 Last Login: {user.lastLogin ? formatDate(user.lastLogin) : 'Never'}
@@ -188,34 +208,48 @@ export function UsersPage() {
                     </span>
                   </td>
                   <td className="py-3 sm:py-4 px-2 sm:px-4">
-                    <button
-                      onClick={() => toggleUserStatus(user)}
-                      className={`inline-flex items-center px-2 sm:px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                    {canEdit ? (
+                      <button
+                        onClick={() => toggleUserStatus(user)}
+                        className={`inline-flex items-center px-2 sm:px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                          user.status === 'active'
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300'
+                            : 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300'
+                        }`}
+                      >
+                        {user.status === 'active' ? '● Active' : '● Inactive'}
+                      </button>
+                    ) : (
+                      <span className={`inline-flex items-center px-2 sm:px-3 py-1 text-xs font-medium rounded-full ${
                         user.status === 'active'
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300'
-                          : 'bg-red-100 text-red-800 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-300'
-                      }`}
-                    >
-                      {user.status === 'active' ? '● Active' : '● Inactive'}
-                    </button>
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                          : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                      }`}>
+                        {user.status === 'active' ? '● Active' : '● Inactive'}
+                      </span>
+                    )}
                   </td>
                   <td className="py-3 sm:py-4 px-2 sm:px-4 text-xs sm:text-sm text-medium-gray hidden lg:table-cell">
                     {user.lastLogin ? formatDate(user.lastLogin) : 'Never'}
                   </td>
                   <td className="py-3 sm:py-4 px-2 sm:px-4">
                     <div className="flex items-center gap-1 sm:gap-2">
-                      <button
-                        onClick={() => handleEditUser(user)}
-                        className="p-1.5 sm:p-2 text-medium-gray hover:text-brand-gold hover:bg-brand-gold/10 rounded-lg transition-colors"
-                      >
-                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="p-1.5 sm:p-2 text-medium-gray hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </button>
+                      {canEdit && (
+                        <>
+                          <button
+                            onClick={() => handleEditUser(user)}
+                            className="p-1.5 sm:p-2 text-medium-gray hover:text-brand-gold hover:bg-brand-gold/10 rounded-lg transition-colors"
+                          >
+                            <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user.id)}
+                            className="p-1.5 sm:p-2 text-medium-gray hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>
