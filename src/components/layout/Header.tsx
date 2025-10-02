@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Bell, MessageSquare, Sun, Moon, User, LogOut, Menu, X } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { NotificationPanel } from '../notifications/NotificationPanel';
@@ -10,6 +10,24 @@ export function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close user menu
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu]);
 
   const unreadNotifications = state.notifications.filter(n => 
     n.userId === state.currentUser?.id && !n.isRead
@@ -88,7 +106,7 @@ export function Header() {
             </button>
           </div>
 
-          <div className="relative">
+          <div className="relative" ref={userMenuRef}>
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
               className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 hover:bg-off-white dark:hover:bg-dark-gray rounded-lg transition-colors"

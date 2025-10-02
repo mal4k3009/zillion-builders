@@ -22,10 +22,27 @@ export function ApprovalSection() {
       }
       
       try {
-        const tasks = await tasksService.getTasksAwaitingApproval(
-          currentUser.id, 
-          currentUserRole as 'director' | 'master' | 'chairman'
-        );
+        // Get pending approval tasks directly from state
+        const tasks = state.tasks.filter(task => {
+          if (currentUserRole === 'master') {
+            // Masters can see all pending approval tasks
+            return task.status.includes('pending') && (
+              task.status.includes('approval') || 
+              task.status === 'pending_chairman_approval' ||
+              task.status === 'pending_director_approval' ||
+              task.status === 'pending_admin_approval'
+            );
+          } else if (currentUserRole === 'chairman') {
+            // Chairmen see chairman approval tasks
+            return task.status === 'pending_chairman_approval';
+          } else if (currentUserRole === 'director') {
+            // Directors see director approval tasks or tasks assigned to them
+            return task.status === 'pending_director_approval' || 
+                   (task.assignedDirector === currentUser.id && task.status.includes('pending'));
+          }
+          return false;
+        });
+        
         setPendingApprovalTasks(tasks);
       } catch (error) {
         console.error('❌ ApprovalSection: Error fetching pending approvals:', error);
@@ -33,7 +50,7 @@ export function ApprovalSection() {
     };
 
     fetchPendingApprovals();
-  }, [currentUser, currentUserRole]);
+  }, [currentUser, currentUserRole, state.tasks]);
 
   // Only show for directors, master admins, and chairmen
   if (currentUserRole !== 'master' && currentUserRole !== 'director' && currentUserRole !== 'chairman') {
