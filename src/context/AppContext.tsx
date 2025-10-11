@@ -297,21 +297,32 @@ const AppContext = createContext<AppContextType | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // Load all data from Firebase
-  const loadAllData = async () => {
+  // Load all data from Firebase with retry mechanism
+  const loadAllData = async (retryCount = 0) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       
       // Load data with individual error handling
-      const [users, chatMessages, notifications, whatsappMessages, activities, projects, userCategories] = await Promise.allSettled([
+      const [users, chatMessages, notifications, whatsappMessages, activities, projects, userCategories, tasks] = await Promise.allSettled([
         usersService.getAll(),
         chatService.getAll(),
         notificationsService.getAll(),
         whatsappService.getAll(),
         activitiesService.getAll(),
         projectsService.getAll(),
-        userCategoriesService.getAll()
+        userCategoriesService.getAll(),
+        tasksService.getAll() // Load tasks directly first
       ]);
+
+      // Handle results with fallback to retry if all fail
+      const allFailed = [users, chatMessages, notifications, whatsappMessages, activities, projects, userCategories, tasks]
+        .every(result => result.status === 'rejected');
+      
+      if (allFailed && retryCount < 2) {
+        console.warn(`All data loading failed, retrying... (${retryCount + 1}/3)`);
+        setTimeout(() => loadAllData(retryCount + 1), 1000 * (retryCount + 1));
+        return;
+      }
 
       // Handle users result
       if (users.status === 'fulfilled') {
@@ -364,8 +375,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'SET_USER_CATEGORIES', payload: [] });
       }
 
-      // Tasks will be loaded via real-time subscription
+      // Handle tasks result - load directly first
+      if (tasks.status === 'fulfilled') {
+        dispatch({ type: 'SET_TASKS', payload: tasks.value });
+      } else {
+        console.error('Error loading tasks:', tasks.reason);
+        dispatch({ type: 'SET_TASKS', payload: [] });
+      }
+
+      // Set up real-time subscription for tasks after initial load
       subscribeToTasks();
+
+      // Set up real-time subscription for chat messages
+      chatService.onUserConversationsSnapshot(state.currentUser?.id || 0, (messages) => {
+        dispatch({ type: 'SET_CHAT_MESSAGES', payload: messages });
+      });
 
       // Initialize task monitoring service with users data
       const usersData = users.status === 'fulfilled' ? users.value : [];
@@ -799,21 +823,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'SET_CURRENT_USER', payload: user });
         
         // Set up auth state listener for future changes
-        authService.onAuthStateChange((user) => {
+        authService.onAuthStateChange(async (user) => {
           console.log('🔥 Auth state changed:', user ? user.name : 'No user');
           dispatch({ type: 'SET_CURRENT_USER', payload: user });
           
           if (user) {
             // Initialize FCM for logged in user
             initializeFCMForUser(user);
+            
+            // Reload all data when user logs in
+            await loadAllData();
+          } else {
+            // Clear data when user logs out
+            dispatch({ type: 'SET_TASKS', payload: [] });
+            dispatch({ type: 'SET_USERS', payload: [] });
+            dispatch({ type: 'SET_CHAT_MESSAGES', payload: [] });
+            dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
+            dispatch({ type: 'SET_WHATSAPP_MESSAGES', payload: [] });
+            dispatch({ type: 'SET_ACTIVITIES', payload: [] });
+            dispatch({ type: 'SET_PROJECTS', payload: [] });
+            dispatch({ type: 'SET_USER_CATEGORIES', payload: [] });
           }
         });
         
-        // Load all data
-        await loadAllData();
+        // Load all data initially
+        if (user) {
+          await loadAllData();
+        }
         
         // Start the automatic task status service
         taskAutoStatusService.start();
+        
+        // Set up periodic data refresh to catch any missed updates
+        const refreshInterval = setInterval(async () => {
+          if (state.currentUser && !state.loading) {
+            await backgroundSync();
+          }
+        }, 30000); // Refresh every 30 seconds
+        
+        // Store interval reference for cleanup
+        (globalThis as { __dataRefreshInterval?: NodeJS.Timeout }).__dataRefreshInterval = refreshInterval;
       } catch (error) {
         console.error('❌ Error during app initialization:', error);
       } finally {
@@ -827,6 +876,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Cleanup function to stop the service when component unmounts
     return () => {
       taskAutoStatusService.stop();
+      // Clear the periodic refresh interval
+      const refreshInterval = (globalThis as { __dataRefreshInterval?: NodeJS.Timeout }).__dataRefreshInterval;
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
