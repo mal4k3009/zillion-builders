@@ -14,6 +14,10 @@ import {
 import { authService } from '../firebase/auth';
 import { taskMonitoringService } from '../services/taskMonitoringService';
 import { taskAutoStatusService } from '../services/taskAutoStatusService';
+import { fcmService } from '../services/fcmService';
+import { useToastNotifications } from '../hooks/useNotifications';
+import { ToastContainer } from '../components/notifications/ToastNotifications';
+import { sendMessageNotification, sendTaskNotification } from '../firebase/messaging';
 
 interface AppState {
   currentUser: User | null;
@@ -296,6 +300,7 @@ const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const { toasts, removeToast } = useToastNotifications();
 
   // Load all data from Firebase with retry mechanism
   const loadAllData = async (retryCount = 0) => {
@@ -467,6 +472,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           state.currentUser.name,
           taskData.title
         );
+
+        // Send FCM push notification for new task assignment
+        await sendTaskNotification(
+          taskData.assignedTo,
+          taskData.title,
+          taskData.description || 'New task assigned to you',
+          taskId,
+          'assigned'
+        );
       }
       
       return taskId;
@@ -518,6 +532,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 taskData.status
               );
             }
+
+            // Send FCM push notification for task status update
+            if (taskData.status === 'completed') {
+              // Notify admins about task completion
+              for (const admin of adminUsers) {
+                await sendTaskNotification(
+                  admin.id,
+                  originalTask.title,
+                  `Task completed by ${state.users.find(u => u.id === assignedUserId)?.name || 'User'}`,
+                  id,
+                  'completed'
+                );
+              }
+            } else {
+              // Notify assigned user about status update
+              await sendTaskNotification(
+                assignedUserId,
+                originalTask.title,
+                `Task status updated to ${taskData.status}`,
+                id,
+                'updated'
+              );
+            }
           }
         }
         
@@ -529,6 +566,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             state.currentUser.id,
             state.currentUser.name,
             originalTask.title
+          );
+
+          // Send FCM push notification for task reassignment
+          await sendTaskNotification(
+            taskData.assignedTo,
+            originalTask.title,
+            `Task reassigned to you by ${state.currentUser.name}`,
+            id,
+            'assigned'
           );
         }
       }
@@ -639,6 +685,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
       // Create notification for the recipient
       await notificationsService.createMessageNotification(
+        messageData.senderId,
+        messageData.receiverId,
+        senderName,
+        messageData.content
+      );
+
+      // Send FCM push notification
+      await sendMessageNotification(
         messageData.senderId,
         messageData.receiverId,
         senderName,
@@ -778,6 +832,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Update last login time
         const updatedUser = { ...result.user, lastLogin: new Date().toISOString() };
         await usersService.update(updatedUser.id, updatedUser);
+        
+        // Initialize FCM for push notifications
+        try {
+          await fcmService.initializeForUser(result.user.id);
+        } catch (fcmError) {
+          console.error('FCM initialization failed:', fcmError);
+        }
         
         return true;
       } else {
@@ -1101,6 +1162,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={contextValue}>
       {children}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
     </AppContext.Provider>
   );
 }

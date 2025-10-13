@@ -16,6 +16,8 @@ import { CalendarPage } from './components/calendar/CalendarPage';
 import { SettingsPage } from './components/settings/SettingsPage';
 import { ProjectsPage } from './components/projects/ProjectsPage';
 import { CategoriesPage } from './components/categories/CategoriesPage';
+// Import simple notification test script
+import './utils/simpleNotificationTest';
 // import { notificationService } from './services/notificationService'; // DISABLED - n8n will handle notifications
 
 function AppContent() {

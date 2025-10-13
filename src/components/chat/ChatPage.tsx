@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Smile, Search, Trash2, MoreVertical } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { ChatMessage } from '../../types';
+import { useToastNotifications } from '../../hooks/useNotifications';
 
 export function ChatPage() {
   const { 
@@ -13,11 +14,13 @@ export function ChatPage() {
     subscribeToConversation,
     markConversationAsRead
   } = useApp();
+  const { showMessageToast } = useToastNotifications();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [conversationMessages, setConversationMessages] = useState<ChatMessage[]>([]);
   const [showDeleteMenu, setShowDeleteMenu] = useState<string | null>(null);
+  const [lastMessageCount, setLastMessageCount] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -52,7 +55,21 @@ export function ChatPage() {
         selectedUserId,
         (messages) => {
           console.log(`🔄 ChatPage received ${messages.length} messages for conversation ${state.currentUser?.id} ↔ ${selectedUserId}`);
-          // Directly update conversation messages when Firebase sends updates
+          
+          // Check for new messages and show toast if needed
+          if (messages.length > lastMessageCount) {
+            const newMessages = messages.slice(lastMessageCount);
+            newMessages.forEach(msg => {
+              // Only show toast for messages from other users
+              if (msg.senderId !== state.currentUser?.id) {
+                const sender = state.users.find(u => u.id === msg.senderId);
+                showMessageToast(sender?.name || 'Someone', msg.content);
+              }
+            });
+          }
+          
+          // Update message count and messages
+          setLastMessageCount(messages.length);
           setConversationMessages(messages);
         }
       );
@@ -67,7 +84,7 @@ export function ChatPage() {
         unsubscribeRef.current = null;
       }
     };
-  }, [selectedUserId, state.currentUser, subscribeToConversation, markConversationAsRead]);
+  }, [selectedUserId, state.currentUser, subscribeToConversation, markConversationAsRead, lastMessageCount, showMessageToast, state.users]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
