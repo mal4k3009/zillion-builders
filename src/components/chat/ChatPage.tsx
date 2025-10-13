@@ -10,7 +10,6 @@ export function ChatPage() {
     sendChatMessage, 
     deleteChatMessage,
     createActivity, 
-    subscribeToUserConversations,
     subscribeToConversation,
     markConversationAsRead
   } = useApp();
@@ -33,13 +32,8 @@ export function ChatPage() {
 
   const selectedUser = users.find(u => u.id === selectedUserId);
 
-  // Subscribe to user's all conversations for unread counts and recent messages
-  useEffect(() => {
-    if (state.currentUser) {
-      const unsubscribe = subscribeToUserConversations(state.currentUser.id);
-      return () => unsubscribe();
-    }
-  }, [state.currentUser, subscribeToUserConversations]);
+  // Note: Global conversation listener is already managed in AppContext
+  // No need to subscribe here to prevent duplicate listeners
 
   // Subscribe to specific conversation when user is selected
   useEffect(() => {

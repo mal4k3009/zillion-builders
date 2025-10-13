@@ -35,6 +35,13 @@ interface AppState {
   authLoading: boolean;
 }
 
+// Listener management for cleanup
+interface ListenerManager {
+  tasksListener?: () => void;
+  notificationsListener?: () => void;
+  conversationsListener?: () => void;
+}
+
 type AppAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_AUTH_LOADING'; payload: boolean }
@@ -301,6 +308,35 @@ const AppContext = createContext<AppContextType | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { toasts, removeToast } = useToastNotifications();
+  
+  // Listener management for proper cleanup
+  const activeListenersRef = React.useRef<ListenerManager>({});
+  
+  // Cleanup function to unsubscribe from all active listeners
+  const cleanupAllListeners = () => {
+    const listeners = activeListenersRef.current;
+    let cleanedCount = 0;
+    
+    if (listeners.tasksListener) {
+      listeners.tasksListener();
+      listeners.tasksListener = undefined;
+      cleanedCount++;
+    }
+    if (listeners.notificationsListener) {
+      listeners.notificationsListener();
+      listeners.notificationsListener = undefined;
+      cleanedCount++;
+    }
+    if (listeners.conversationsListener) {
+      listeners.conversationsListener();
+      listeners.conversationsListener = undefined;
+      cleanedCount++;
+    }
+    
+    if (cleanedCount > 0) {
+      console.log(`🧹 Cleaned up ${cleanedCount} active Firestore listeners`);
+    }
+  };
 
   // Load all data from Firebase with retry mechanism
   const loadAllData = async (retryCount = 0) => {
@@ -388,13 +424,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         dispatch({ type: 'SET_TASKS', payload: [] });
       }
 
-      // Set up real-time subscription for tasks after initial load
-      subscribeToTasks();
+      // Clean up existing listeners before setting up new ones
+      cleanupAllListeners();
+      
+      // Set up real-time subscription for tasks after initial load (with cleanup tracking)
+      activeListenersRef.current.tasksListener = subscribeToTasks();
 
-      // Set up real-time subscription for chat messages
-      chatService.onUserConversationsSnapshot(state.currentUser?.id || 0, (messages) => {
-        dispatch({ type: 'SET_CHAT_MESSAGES', payload: messages });
-      });
+      // Initial load of chat messages (one-time read instead of real-time listener to save reads)
+      if (state.currentUser?.id) {
+        const chatMessages = await chatService.getUserConversations(state.currentUser.id);
+        dispatch({ type: 'SET_CHAT_MESSAGES', payload: chatMessages });
+      }
 
       // Initialize task monitoring service with users data
       const usersData = users.status === 'fulfilled' ? users.value : [];
@@ -410,9 +450,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const backgroundSync = async () => {
     try {
       // Load data silently without setting loading state
+      const currentUserId = state.currentUser?.id;
       const [users, chatMessages, notifications, whatsappMessages, activities, projects, userCategories] = await Promise.allSettled([
         usersService.getAll(),
-        chatService.getAll(),
+        currentUserId ? chatService.getUserConversations(currentUserId) : chatService.getAll(),
         notificationsService.getAll(),
         whatsappService.getAll(),
         activitiesService.getAll(),
@@ -782,24 +823,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Real-time notification subscription
+  // Real-time notification subscription with duplicate prevention
   const subscribeToUserNotifications = (userId: number) => {
+    // Clean up existing notifications listener if any
+    if (activeListenersRef.current.notificationsListener) {
+      activeListenersRef.current.notificationsListener();
+    }
+    
     const unsubscribe = notificationsService.onUserNotificationsSnapshot(
       userId,
       (notifications) => {
         dispatch({ type: 'SET_NOTIFICATIONS', payload: notifications });
       }
     );
+    
+    // Store the listener for cleanup
+    activeListenersRef.current.notificationsListener = unsubscribe;
     return unsubscribe;
   };
 
-  // Real-time task subscription
+  // Real-time task subscription with duplicate prevention
   const subscribeToTasks = () => {
+    // Clean up existing tasks listener if any
+    if (activeListenersRef.current.tasksListener) {
+      activeListenersRef.current.tasksListener();
+    }
+    
     const unsubscribe = tasksService.onTasksSnapshot(
       (tasks) => {
         dispatch({ type: 'SET_TASKS', payload: tasks });
       }
     );
+    
+    // Store the listener for cleanup
+    activeListenersRef.current.tasksListener = unsubscribe;
     return unsubscribe;
   };
 
@@ -894,7 +951,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             
             // Reload all data when user logs in
             await loadAllData();
+            
+            // Set up user-specific notification listener
+            if (!activeListenersRef.current.notificationsListener) {
+              activeListenersRef.current.notificationsListener = subscribeToUserNotifications(user.id);
+              console.log(`🔔 Set up notification listener for user: ${user.name}`);
+            }
           } else {
+            // Clean up listeners when user logs out
+            cleanupAllListeners();
+            
             // Clear data when user logs out
             dispatch({ type: 'SET_TASKS', payload: [] });
             dispatch({ type: 'SET_USERS', payload: [] });
@@ -936,6 +1002,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     
     // Cleanup function to stop the service when component unmounts
     return () => {
+      // Cleanup all active Firestore listeners
+      cleanupAllListeners();
+      
       taskAutoStatusService.stop();
       // Clear the periodic refresh interval
       const refreshInterval = (globalThis as { __dataRefreshInterval?: NodeJS.Timeout }).__dataRefreshInterval;

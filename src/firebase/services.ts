@@ -694,7 +694,57 @@ export const chatService = {
     });
   },
 
-  // Real-time listener for all user's conversations
+  // One-time read for user conversations (more efficient than real-time for overview)
+  async getUserConversations(userId: number): Promise<ChatMessage[]> {
+    try {
+      // Get messages where user is sender
+      const q1 = query(
+        collection(db, 'chatMessages'),
+        where('senderId', '==', userId)
+      );
+      
+      // Get messages where user is receiver
+      const q2 = query(
+        collection(db, 'chatMessages'),
+        where('receiverId', '==', userId)
+      );
+      
+      const [senderSnapshot, receiverSnapshot] = await Promise.all([
+        getDocs(q1),
+        getDocs(q2)
+      ]);
+      
+      const allMessages = [
+        ...senderSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            ...data,
+            timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+          } as ChatMessage;
+        }),
+        ...receiverSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return { 
+            id: doc.id, 
+            ...data,
+            timestamp: data.timestamp?.toDate?.()?.toISOString() || data.timestamp
+          } as ChatMessage;
+        })
+      ];
+      
+      // Remove duplicates and sort
+      return allMessages
+        .filter((msg, index, self) => index === self.findIndex(m => m.id === msg.id))
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 100);
+    } catch (error) {
+      console.error('Error getting user conversations:', error);
+      return [];
+    }
+  },
+
+  // Real-time listener for all user's conversations (DEPRECATED - use getUserConversations for better performance)
   onUserConversationsSnapshot(userId: number, callback: (messages: ChatMessage[]) => void) {
     // Use a simpler query without complex indexing requirements
     const q = query(

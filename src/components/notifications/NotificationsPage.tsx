@@ -1,18 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bell, Check, Trash2, Filter } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 export function NotificationsPage() {
-  const { state, markNotificationAsRead, markAllNotificationsAsRead, subscribeToUserNotifications } = useApp();
+  const { state, markNotificationAsRead, markAllNotificationsAsRead } = useApp();
   const [filter, setFilter] = useState<'all' | 'unread' | 'task_assigned' | 'task_updated' | 'message_received' | 'system'>('all');
 
-  // Subscribe to real-time notifications when component mounts
-  useEffect(() => {
-    if (state.currentUser) {
-      const unsubscribe = subscribeToUserNotifications(state.currentUser.id);
-      return unsubscribe;
-    }
-  }, [state.currentUser, subscribeToUserNotifications]);
+  // Note: No need to subscribe here - AppContext already manages the notifications listener
+  // This prevents duplicate listeners for the same data
 
   const userNotifications = state.notifications.filter(n => n.userId === state.currentUser?.id);
 
