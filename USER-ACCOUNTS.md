@@ -3,19 +3,19 @@
 ## Management Users (Full Access - 10/10 Navigation Items)
 
 ### 👑 Master Administrator
-- **Email:** `masteradmin@zillionbuilders.com`
+- **Email:** `masteradmin@sentimentai.com`
 - **Password:** `MasterAdmin@123`
 - **Role:** `master`
 - **Access:** Full system access (all features)
 
 ### 🎯 Director  
-- **Email:** `director@zillionbuilders.com`
+- **Email:** `director@sentimentai.com`
 - **Password:** `Director@123`
 - **Role:** `director`
 - **Access:** Full management access (same as master)
 
 ### 🏢 Chairman
-- **Email:** `chairman@zillionbuilders.com`
+- **Email:** `chairman@sentimentai.com`
 - **Password:** `Chairman@123`
 - **Role:** `chairman`
 - **Access:** Full executive access (same as master)
@@ -23,7 +23,7 @@
 ## Employee Users (Restricted Access - 5/10 Navigation Items)
 
 ### 👨‍💼 Employee
-- **Email:** `john.smith@zillionbuilders.com`
+- **Email:** `john.smith@sentimentai.com`
 - **Password:** `Employee@123`
 - **Role:** `employee`
 - **Access:** Basic task management and communication only

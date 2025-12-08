@@ -10,7 +10,7 @@ export interface AuthResult {
 class AuthService {
   private currentUser: User | null = null;
   private authStateListeners: ((user: User | null) => void)[] = [];
-  private SESSION_KEY = 'zillion_user_session';
+  private SESSION_KEY = 'sentiment_user_session';
 
   // Initialize auth state from localStorage
   async init(): Promise<User | null> {

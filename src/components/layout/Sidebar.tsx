@@ -116,7 +116,7 @@ export function Sidebar({ currentPage, onNavigate }: SidebarProps) {
       flex flex-col overflow-hidden
     `}>
       <div className="p-3 sm:p-4 lg:p-6 border-b border-light-gray dark:border-soft-black flex-shrink-0">
-        <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-deep-charcoal dark:text-brand-gold truncate">Zillion Group Teams</h2>
+        <h2 className="text-sm sm:text-base lg:text-lg font-semibold text-deep-charcoal dark:text-brand-gold truncate">Sentiment AI Real Estate</h2>
         <p className="text-xs sm:text-sm text-medium-gray capitalize truncate">
           {state.currentUser?.role === 'master' ? 'Master Admin' : `${state.currentUser?.designation} Admin`}
         </p>

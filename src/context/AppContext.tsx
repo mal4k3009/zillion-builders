@@ -78,7 +78,7 @@ type AppAction =
 // Initial state helper function for theme persistence
 const getInitialTheme = (): 'light' | 'dark' => {
   if (typeof window !== 'undefined') {
-    const savedTheme = localStorage.getItem('zillion_theme');
+    const savedTheme = localStorage.getItem('sentiment_theme');
     if (savedTheme === 'light' || savedTheme === 'dark') {
       return savedTheme;
     }
@@ -249,7 +249,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
       const newTheme = state.theme === 'light' ? 'dark' : 'light';
       // Persist theme to localStorage
       if (typeof window !== 'undefined') {
-        localStorage.setItem('zillion_theme', newTheme);
+        localStorage.setItem('sentiment_theme', newTheme);
       }
       return { ...state, theme: newTheme };
     }
@@ -935,43 +935,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_AUTH_LOADING', payload: true });
       
       try {
-        // Initialize Firebase Auth first (this will restore any existing auth state synchronously)
-        console.log('� Initializing authentication...');
-        const user = await authService.init();
-        dispatch({ type: 'SET_CURRENT_USER', payload: user });
+        // Auto-login with master admin (authentication temporarily disabled)
+        console.log('🔓 Auto-logging in with master admin...');
+        const users = await usersService.getAll();
+        const masterAdmin = users.find(u => u.role === 'master' && u.email === 'masteradmin@sentimentai.com');
         
-        // Set up auth state listener for future changes
-        authService.onAuthStateChange(async (user) => {
-          console.log('🔥 Auth state changed:', user ? user.name : 'No user');
-          dispatch({ type: 'SET_CURRENT_USER', payload: user });
-          
-          if (user) {
-            // Initialize FCM for logged in user
-            initializeFCMForUser(user);
-            
-            // Reload all data when user logs in
-            await loadAllData();
-            
-            // Set up user-specific notification listener
-            if (!activeListenersRef.current.notificationsListener) {
-              activeListenersRef.current.notificationsListener = subscribeToUserNotifications(user.id);
-              console.log(`🔔 Set up notification listener for user: ${user.name}`);
-            }
-          } else {
-            // Clean up listeners when user logs out
-            cleanupAllListeners();
-            
-            // Clear data when user logs out
-            dispatch({ type: 'SET_TASKS', payload: [] });
-            dispatch({ type: 'SET_USERS', payload: [] });
-            dispatch({ type: 'SET_CHAT_MESSAGES', payload: [] });
-            dispatch({ type: 'SET_NOTIFICATIONS', payload: [] });
-            dispatch({ type: 'SET_WHATSAPP_MESSAGES', payload: [] });
-            dispatch({ type: 'SET_ACTIVITIES', payload: [] });
-            dispatch({ type: 'SET_PROJECTS', payload: [] });
-            dispatch({ type: 'SET_USER_CATEGORIES', payload: [] });
-          }
-        });
+        if (!masterAdmin) {
+          console.error('❌ Master admin not found!');
+          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+          return;
+        }
+        
+        const user = masterAdmin;
+        dispatch({ type: 'SET_CURRENT_USER', payload: user });
         
         // Load all data initially
         if (user) {

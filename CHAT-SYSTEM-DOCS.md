@@ -1,7 +1,7 @@
 # Real-Time Chat System Documentation
 
 ## Overview
-This document explains the real-time chat functionality implemented in the Zillion Builders project management system using Firebase Firestore.
+This document explains the real-time chat functionality implemented in the Sentiment AI Real Estate project management system using Firebase Firestore.
 
 ## Features
 
@@ -239,4 +239,4 @@ service cloud.firestore {
 
 ---
 
-*This real-time chat system provides a complete, professional-grade messaging solution that integrates seamlessly with the Zillion Builders project management platform.*
+*This real-time chat system provides a complete, professional-grade messaging solution that integrates seamlessly with the Sentiment AI Real Estate project management platform.*

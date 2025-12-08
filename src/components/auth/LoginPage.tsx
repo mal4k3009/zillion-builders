@@ -41,14 +41,7 @@ export function LoginPage() {
       <div className="w-full max-w-md">
         <div className="bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl shadow-2xl p-6 sm:p-8 border border-white/20">
           <div className="text-center mb-6 sm:mb-8">
-            <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center mb-3 sm:mb-4 p-2">
-              <img 
-                src="/Zillion Group Logo-1.png" 
-                alt="Zillion Group Logo" 
-                className="w-full h-full object-contain"
-              />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-pure-white mb-2">Zillion Group Teams</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-pure-white mb-2">Sentiment AI Real Estate</h1>
             <p className="text-sm sm:text-base text-accent-gold">Enterprise Task Management System</p>
           </div>
 
