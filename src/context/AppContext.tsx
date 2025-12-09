@@ -938,12 +938,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Auto-login with master admin (authentication temporarily disabled)
         console.log('🔓 Auto-logging in with master admin...');
         const users = await usersService.getAll();
-        const masterAdmin = users.find(u => u.role === 'master' && u.email === 'masteradmin@sentimentai.com');
+        let masterAdmin = users.find(u => u.role === 'master' && u.email === 'masteradmin@sentimentai.com');
         
         if (!masterAdmin) {
-          console.error('❌ Master admin not found!');
-          dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-          return;
+          console.log('⚠️ Master admin not found! Creating master admin...');
+          
+          // Create master admin user
+          const masterAdminData = {
+            username: 'masteradmin',
+            password: 'MasterAdmin@123',
+            role: 'master' as const,
+            designation: 'admin' as const,
+            name: 'Master Administrator',
+            email: 'masteradmin@sentimentai.com',
+            status: 'active' as const,
+            createdAt: new Date().toISOString()
+          };
+          
+          try {
+            const newUserId = await usersService.create(masterAdminData);
+            masterAdmin = { id: newUserId, ...masterAdminData };
+            console.log('✅ Master admin created successfully with ID:', newUserId);
+          } catch (error) {
+            console.error('❌ Failed to create master admin:', error);
+            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
+            return;
+          }
         }
         
         const user = masterAdmin;

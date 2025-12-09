@@ -14,7 +14,7 @@ export function AnalyticsPage() {
     const stats = usersWithTasks.map(user => {
       const userTasks = state.tasks.filter(task => task.assignedTo === user.id);
       const completed = userTasks.filter(t => t.status === 'completed').length;
-      const inProgress = userTasks.filter(t => t.status === 'in-progress').length;
+      const inProgress = userTasks.filter(t => t.status === 'in_progress').length;
       const pending = userTasks.filter(t => t.status === 'pending').length;
       const paused = userTasks.filter(t => t.status === 'paused').length;
       const overdue = userTasks.filter(t => 
@@ -80,7 +80,7 @@ export function AnalyticsPage() {
       tasksThisWeek: thisWeek,
       weeklyGrowth,
       averageCompletion: Math.round((state.tasks.filter(t => t.status === 'completed').length / state.tasks.length) * 100) || 0,
-      activeUsers: state.users.filter(u => u.status === 'active' && u.role === 'sub').length
+      activeUsers: state.users.filter(u => u.status === 'active').length
     };
   };
 
