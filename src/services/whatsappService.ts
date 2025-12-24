@@ -56,16 +56,30 @@ class WhatsAppService {
     try {
       // Use proxy path for development to avoid CORS issues
       const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const baseUrl = isDevelopment ? '/api/whatsapp/send-message' : this.config.apiEndpoint;
       
-      const url = new URL(baseUrl, window.location.origin);
-      url.searchParams.append('api_key', this.config.apiKey);
-      url.searchParams.append('sender', this.config.sender);
-      url.searchParams.append('number', number);
-      url.searchParams.append('message', message);
-      url.searchParams.append('footer', footer);
+      let url: string;
+      if (isDevelopment) {
+        // For development, use relative path for proxy
+        const params = new URLSearchParams({
+          api_key: this.config.apiKey,
+          sender: this.config.sender,
+          number: number,
+          message: message,
+          footer: footer
+        });
+        url = `/api/whatsapp/send-message?${params.toString()}`;
+      } else {
+        // For production, use direct API endpoint
+        const apiUrl = new URL(this.config.apiEndpoint);
+        apiUrl.searchParams.append('api_key', this.config.apiKey);
+        apiUrl.searchParams.append('sender', this.config.sender);
+        apiUrl.searchParams.append('number', number);
+        apiUrl.searchParams.append('message', message);
+        apiUrl.searchParams.append('footer', footer);
+        url = apiUrl.toString();
+      }
 
-      const response = await fetch(url.toString(), {
+      const response = await fetch(url, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

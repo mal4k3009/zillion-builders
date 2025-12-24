@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Smartphone, Send, MessageSquare, Users, Clock, CheckCircle } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { WhatsAppMessage } from '../../types';
+import { whatsappService } from '../../services/whatsappService';
 
 export function WhatsAppPage() {
   const { state, dispatch } = useApp();
@@ -36,34 +37,56 @@ export function WhatsAppPage() {
     }
   };
 
-  const sendWhatsAppMessage = () => {
+  const sendWhatsAppMessage = async () => {
     if (!recipient || !selectedTemplate) return;
 
-    const newMessage: WhatsAppMessage = {
-      id: Date.now(),
-      to: recipient,
-      message: customMessage || generateTemplateMessage(selectedTemplate),
-      type: selectedTemplate,
-      sentAt: new Date().toISOString(),
-      status: 'sent'
-    };
-
-    dispatch({ type: 'ADD_WHATSAPP_MESSAGE', payload: newMessage });
+    const messageText = customMessage || generateTemplateMessage(selectedTemplate);
     
-    // Add activity
-    dispatch({
-      type: 'ADD_ACTIVITY',
-      payload: {
-        id: Date.now(),
-        type: 'message_sent',
-        description: `Sent WhatsApp ${messageTemplates[selectedTemplate].title} to ${recipient}`,
-        userId: state.currentUser!.id,
-        timestamp: new Date().toISOString()
-      }
-    });
+    console.log('📤 Sending WhatsApp message to:', recipient);
+    
+    try {
+      // Send actual WhatsApp message
+      const success = await whatsappService.sendMessage(recipient, messageText);
+      
+      if (success) {
+        console.log('✅ WhatsApp message sent successfully');
+        
+        // Store in message history
+        const newMessage: WhatsAppMessage = {
+          id: Date.now(),
+          to: recipient,
+          message: messageText,
+          type: selectedTemplate,
+          sentAt: new Date().toISOString(),
+          status: 'sent'
+        };
 
-    setRecipient('');
-    setCustomMessage('');
+        dispatch({ type: 'ADD_WHATSAPP_MESSAGE', payload: newMessage });
+        
+        // Add activity
+        dispatch({
+          type: 'ADD_ACTIVITY',
+          payload: {
+            id: Date.now(),
+            type: 'message_sent',
+            description: `Sent WhatsApp ${messageTemplates[selectedTemplate].title} to ${recipient}`,
+            userId: state.currentUser!.id,
+            timestamp: new Date().toISOString()
+          }
+        });
+
+        setRecipient('');
+        setCustomMessage('');
+        
+        alert('WhatsApp message sent successfully!');
+      } else {
+        console.error('❌ Failed to send WhatsApp message');
+        alert('Failed to send WhatsApp message. Check console for details.');
+      }
+    } catch (error) {
+      console.error('❌ Error sending WhatsApp message:', error);
+      alert('Error sending WhatsApp message. Check console for details.');
+    }
   };
 
   const generateTemplateMessage = (templateType: keyof typeof messageTemplates) => {
