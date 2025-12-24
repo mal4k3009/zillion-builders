@@ -4,7 +4,7 @@
 export const WHATSAPP_CONFIG = {
   // API Configuration - Using n8n webhook
   webhookUrl: 'https://n8n.srv954870.hstgr.cloud/webhook/0471cb53-a2cc-440a-8ef7-0b11e9244460',
-  defaultRecipient: '919313061975',
+  defaultRecipient: '917802032338',
   
   // Legacy API config (not used with webhook)
   apiKey: 'BWYcB3LFk2FgXxbTeBtriXeyHYciV',
