@@ -53,15 +53,42 @@ export function WhatsAppSettings() {
 
     setIsSending(true);
     try {
-      await whatsappService.sendCustomNotification(
-        '🧪 Test Notification',
+      const success = await whatsappService.sendMessage(
+        WHATSAPP_CONFIG.defaultRecipient,
         testMessage
       );
-      alert('Test message sent successfully!');
+      
+      if (success) {
+        alert('Test message sent to webhook successfully! Check your n8n workflow.');
+      } else {
+        alert('Failed to send test message. Check console for details.');
+      }
       setTestMessage('');
     } catch (error) {
       alert('Failed to send test message. Check console for details.');
       console.error('Test message error:', error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleQuickTest = async () => {
+    setIsSending(true);
+    try {
+      const testMsg = `🧪 Quick Test from WhatsApp Settings\n\nTimestamp: ${new Date().toLocaleString()}\n\nThis is a test message to verify the webhook integration.`;
+      const success = await whatsappService.sendMessage(
+        WHATSAPP_CONFIG.defaultRecipient,
+        testMsg
+      );
+      
+      if (success) {
+        alert('✅ Quick test sent successfully! Check your n8n workflow.');
+      } else {
+        alert('❌ Quick test failed. Check console for details.');
+      }
+    } catch (error) {
+      alert('❌ Quick test failed. Check console for details.');
+      console.error('Quick test error:', error);
     } finally {
       setIsSending(false);
     }
@@ -96,27 +123,55 @@ export function WhatsAppSettings() {
       {/* API Configuration */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-          API Configuration
+          Webhook Configuration
         </h3>
         <div className="space-y-3 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">API Endpoint:</span>
-            <span className="text-gray-900 dark:text-white font-mono text-xs">
-              {WHATSAPP_CONFIG.apiEndpoint}
+          <div className="flex justify-between items-start">
+            <span className="text-gray-600 dark:text-gray-400">Webhook URL:</span>
+            <span className="text-gray-900 dark:text-white font-mono text-xs break-all max-w-md text-right">
+              {WHATSAPP_CONFIG.webhookUrl}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">Sender Number:</span>
+            <span className="text-gray-600 dark:text-gray-400">Default Recipient:</span>
             <span className="text-gray-900 dark:text-white font-mono">
-              +{WHATSAPP_CONFIG.sender}
+              +{WHATSAPP_CONFIG.defaultRecipient}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-400">API Key:</span>
-            <span className="text-gray-900 dark:text-white font-mono text-xs">
-              {WHATSAPP_CONFIG.apiKey.substring(0, 20)}...
-            </span>
+          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              onClick={handleQuickTest}
+              disabled={isSending}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <MessageSquare className="w-4 h-4" />
+              {isSending ? 'Sending...' : '🚀 Quick Test Webhook'}
+            </button>
           </div>
+        </div>
+      </div>
+
+      {/* Test Notification */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+          Send Custom Test Message
+        </h3>
+        <div className="space-y-4">
+          <textarea
+            value={testMessage}
+            onChange={(e) => setTestMessage(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+            rows={4}
+            placeholder="Enter your test message here..."
+          />
+          <button
+            onClick={handleSendTestMessage}
+            disabled={isSending}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <MessageSquare className="w-4 h-4" />
+            {isSending ? 'Sending...' : 'Send Custom Test'}
+          </button>
         </div>
       </div>
 
@@ -223,30 +278,6 @@ export function WhatsAppSettings() {
               No contacts configured. Add contacts to receive notifications.
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Test Notification */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-          Send Test Notification
-        </h3>
-        <div className="space-y-4">
-          <textarea
-            value={testMessage}
-            onChange={(e) => setTestMessage(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-            rows={4}
-            placeholder="Enter your test message here..."
-          />
-          <button
-            onClick={handleSendTestMessage}
-            disabled={isSending}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <MessageSquare className="w-4 h-4" />
-            {isSending ? 'Sending...' : 'Send Test to All Contacts'}
-          </button>
         </div>
       </div>
 

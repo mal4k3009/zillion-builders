@@ -1,12 +1,6 @@
 // WhatsApp Notification Service
-// Using wpauto.jenilpatel.co.in API
+// Using n8n webhook
 import { WHATSAPP_CONFIG, ENABLED_CONTACTS } from '../config/whatsappConfig';
-
-interface WhatsAppConfig {
-  apiKey: string;
-  sender: string;
-  apiEndpoint: string;
-}
 
 interface WhatsAppContact {
   name: string;
@@ -17,11 +11,8 @@ interface WhatsAppContact {
 
 class WhatsAppService {
   private static instance: WhatsAppService;
-  private config: WhatsAppConfig = {
-    apiKey: WHATSAPP_CONFIG.apiKey,
-    sender: WHATSAPP_CONFIG.sender,
-    apiEndpoint: WHATSAPP_CONFIG.apiEndpoint
-  };
+  private webhookUrl: string = WHATSAPP_CONFIG.webhookUrl;
+  private defaultRecipient: string = WHATSAPP_CONFIG.defaultRecipient;
 
   // Notification recipients - loaded from config
   private contacts: WhatsAppContact[] = ENABLED_CONTACTS;
@@ -34,69 +25,48 @@ class WhatsAppService {
   }
 
   /**
-   * Send WhatsApp message to all configured contacts
+   * Send WhatsApp message to webhook
    */
-  async sendNotificationToAll(message: string, footer: string = WHATSAPP_CONFIG.defaultFooter): Promise<void> {
-    const promises = this.contacts.map(contact => 
-      this.sendMessage(contact.number, message, footer)
-    );
-    
+  async sendNotificationToAll(message: string): Promise<void> {
     try {
-      await Promise.all(promises);
-      console.log('✅ WhatsApp notifications sent to all contacts');
+      await this.sendMessage(this.defaultRecipient, message);
+      console.log('✅ WhatsApp notification sent to webhook');
     } catch (error) {
-      console.error('❌ Error sending WhatsApp notifications:', error);
+      console.error('❌ Error sending WhatsApp notification:', error);
     }
   }
 
   /**
-   * Send WhatsApp message to a specific contact
+   * Send WhatsApp message to webhook (number parameter for compatibility)
    */
-  async sendMessage(number: string, message: string, footer: string = WHATSAPP_CONFIG.defaultFooter): Promise<boolean> {
+  async sendMessage(number: string, message: string): Promise<boolean> {
     try {
-      // Use proxy path for development to avoid CORS issues
-      const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      console.log('📤 Sending to webhook:', { number, message });
       
-      let url: string;
-      if (isDevelopment) {
-        // For development, use relative path for proxy
-        const params = new URLSearchParams({
-          api_key: this.config.apiKey,
-          sender: this.config.sender,
-          number: number,
-          message: message,
-          footer: footer
-        });
-        url = `/api/whatsapp/send-message?${params.toString()}`;
-      } else {
-        // For production, use direct API endpoint
-        const apiUrl = new URL(this.config.apiEndpoint);
-        apiUrl.searchParams.append('api_key', this.config.apiKey);
-        apiUrl.searchParams.append('sender', this.config.sender);
-        apiUrl.searchParams.append('number', number);
-        apiUrl.searchParams.append('message', message);
-        apiUrl.searchParams.append('footer', footer);
-        url = apiUrl.toString();
-      }
+      const payload = {
+        receiver: number,
+        message: message,
+        timestamp: new Date().toISOString()
+      };
 
-      const response = await fetch(url, {
-        method: 'GET',
+      const response = await fetch(this.webhookUrl, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify(payload)
       });
 
-      const data = await response.json();
-      
-      if (data.status === true || data.status === 'true') {
-        console.log(`✅ WhatsApp message sent to ${number}: ${data.msg || 'Success'}`);
+      if (response.ok) {
+        const data = await response.text();
+        console.log('✅ Webhook response:', data);
         return true;
       } else {
-        console.error(`❌ Failed to send WhatsApp to ${number}:`, data);
+        console.error('❌ Webhook failed:', response.status, response.statusText);
         return false;
       }
     } catch (error) {
-      console.error(`❌ Error sending WhatsApp to ${number}:`, error);
+      console.error('❌ Error sending to webhook:', error);
       return false;
     }
   }
