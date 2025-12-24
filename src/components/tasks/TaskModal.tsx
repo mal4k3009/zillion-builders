@@ -195,15 +195,15 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
           actionUrl: `/tasks`
         });
 
-        // Send real push notification to phone (DISABLED - n8n will handle notifications)
+        // Send WhatsApp notification
         if (assignedUser) {
-          console.log('📴 Task notification disabled - n8n will handle notification for:', assignedUser.name);
-          // await notificationService.sendTaskAssignedNotification(
-          //   assignedUser,
-          //   formData.title,
-          //   state.currentUser?.name || 'Master Admin',
-          //   taskId // Pass the actual task ID
-          // );
+          console.log('📱 Sending WhatsApp notification for:', assignedUser.name);
+          await notificationService.sendTaskAssignedNotification(
+            assignedUser,
+            formData.title,
+            state.currentUser?.name || 'Master Admin',
+            taskId // Pass the actual task ID
+          );
         }
 
         // Add activity

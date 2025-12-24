@@ -1,5 +1,5 @@
 import { tasksService } from '../firebase/services';
-// import { notificationService } from './notificationService'; // REMOVED - notifications disabled
+import { notificationService } from './notificationService';
 import { Task, User } from '../types';
 
 class TaskMonitoringService {
@@ -43,8 +43,13 @@ class TaskMonitoringService {
             const alreadySent = localStorage.getItem(lastNotificationKey);
 
             if (!alreadySent) {
-              // await notificationService.sendTaskOverdueNotification(task.title, assignedUser); // DISABLED
+              // Send WhatsApp notification for overdue task
               console.log(`📋 Task overdue notification: ${task.title} assigned to ${assignedUser.name}`);
+              await notificationService.sendTaskOverdueNotification(
+                task.title, 
+                assignedUser, 
+                task.dueDate
+              );
               localStorage.setItem(lastNotificationKey, 'true');
             }
           }

@@ -5,6 +5,7 @@ import { ApprovalTaskCard } from './ApprovalTaskCard';
 import { TaskModal } from '../tasks/TaskModal';
 import { Task } from '../../types';
 import { tasksService } from '../../firebase/services';
+import { notificationService } from '../../services/notificationService';
 
 export function ApprovalSection() {
   const { state, createActivity } = useApp();
@@ -59,6 +60,9 @@ export function ApprovalSection() {
 
   const handleApprove = async (taskId: string) => {
     try {
+      const task = state.tasks.find(t => t.id === taskId);
+      const taskTitle = task?.title || 'Task';
+      
       if (currentUserRole === 'director') {
         await tasksService.approveByDirector(taskId, true);
       } else if (currentUserRole === 'master') {
@@ -66,6 +70,13 @@ export function ApprovalSection() {
       } else if (currentUserRole === 'chairman') {
         await tasksService.approveByChairman(taskId, true);
       }
+      
+      // Send WhatsApp notification
+      await notificationService.sendApprovalDecisionNotification(
+        taskTitle,
+        'approved',
+        currentUser?.name || 'Admin'
+      );
       
       // Add activity log
       if (createActivity) {
@@ -93,6 +104,9 @@ export function ApprovalSection() {
     if (!rejectionReason) return;
 
     try {
+      const task = state.tasks.find(t => t.id === taskId);
+      const taskTitle = task?.title || 'Task';
+      
       if (currentUserRole === 'director') {
         await tasksService.approveByDirector(taskId, false, rejectionReason);
       } else if (currentUserRole === 'master') {
@@ -100,6 +114,13 @@ export function ApprovalSection() {
       } else if (currentUserRole === 'chairman') {
         await tasksService.approveByChairman(taskId, false, rejectionReason);
       }
+      
+      // Send WhatsApp notification
+      await notificationService.sendApprovalDecisionNotification(
+        taskTitle,
+        'rejected',
+        currentUser?.name || 'Admin'
+      );
       
       // Add activity log
       if (createActivity) {

@@ -15,6 +15,7 @@ import { authService } from '../firebase/auth';
 import { taskMonitoringService } from '../services/taskMonitoringService';
 import { taskAutoStatusService } from '../services/taskAutoStatusService';
 import { fcmService } from '../services/fcmService';
+import { notificationService } from '../services/notificationService';
 import { useToastNotifications } from '../hooks/useNotifications';
 import { ToastContainer } from '../components/notifications/ToastNotifications';
 import { sendMessageNotification, sendTaskNotification } from '../firebase/messaging';
@@ -732,7 +733,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         messageData.content
       );
 
-      // Send FCM push notification
+      // Send WhatsApp notification
+      console.log('📱 Sending WhatsApp notification for new chat message');
+      await notificationService.sendChatMessageNotification(senderName, messageData.content);
+
+      // Send FCM push notification (keeping for compatibility)
       await sendMessageNotification(
         messageData.senderId,
         messageData.receiverId,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { User, Lock, Bell, Palette, Globe, Shield, Save } from 'lucide-react';
+import { User, Lock, Bell, Palette, Globe, Shield, Save, MessageSquare } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
+import { WhatsAppSettings } from './WhatsAppSettings';
 
 export function SettingsPage() {
   const { state, dispatch } = useApp();
@@ -28,6 +29,7 @@ export function SettingsPage() {
     { id: 'profile', name: 'Profile', icon: <User className="w-4 h-4" /> },
     { id: 'password', name: 'Password', icon: <Lock className="w-4 h-4" /> },
     { id: 'notifications', name: 'Notifications', icon: <Bell className="w-4 h-4" /> },
+    { id: 'whatsapp', name: 'WhatsApp', icon: <MessageSquare className="w-4 h-4" /> },
     { id: 'appearance', name: 'Appearance', icon: <Palette className="w-4 h-4" /> },
     { id: 'system', name: 'System', icon: <Globe className="w-4 h-4" /> }
   ];
@@ -184,6 +186,9 @@ export function SettingsPage() {
             ))}
           </div>
         );
+
+      case 'whatsapp':
+        return <WhatsAppSettings />;
 
       case 'appearance':
         return (
