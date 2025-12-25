@@ -25,14 +25,22 @@ class WhatsAppService {
   }
 
   /**
-   * Send WhatsApp message to webhook
+   * Send WhatsApp message to all enabled contacts via webhook
    */
   async sendNotificationToAll(message: string): Promise<void> {
     try {
-      await this.sendMessage(this.defaultRecipient, message);
-      console.log('✅ WhatsApp notification sent to webhook');
+      const enabledContacts = this.contacts.filter(contact => contact.enabled !== false);
+      console.log(`📤 Sending notification to ${enabledContacts.length} contacts...`);
+      
+      // Send to all enabled contacts
+      const promises = enabledContacts.map(contact => 
+        this.sendMessage(contact.number, message)
+      );
+      
+      await Promise.all(promises);
+      console.log('✅ WhatsApp notifications sent to all contacts via webhook');
     } catch (error) {
-      console.error('❌ Error sending WhatsApp notification:', error);
+      console.error('❌ Error sending WhatsApp notifications:', error);
     }
   }
 

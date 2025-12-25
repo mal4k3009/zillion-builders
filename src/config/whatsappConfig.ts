@@ -40,6 +40,12 @@ export const WHATSAPP_CONFIG = {
       number: '919313061975',
       role: 'Developer',
       enabled: true
+    },
+    {
+      name: 'Dhrumil Patel',
+      number: '917802032338',
+      role: 'Team Member',
+      enabled: true
     }
   ],
   

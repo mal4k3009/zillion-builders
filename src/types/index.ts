@@ -8,6 +8,7 @@ export interface User {
   designation: string;
   name: string;
   email: string;
+  whatsappNumber?: string; // WhatsApp number for notifications
   status: 'active' | 'inactive';
   lastLogin?: string;
   createdAt: string;

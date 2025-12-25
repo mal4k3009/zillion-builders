@@ -4,7 +4,7 @@ import { Task, Project, UserCategory, User as UserType } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { projectsService, userCategoriesService, tasksService } from '../../firebase/services';
 import { priorityLevels, taskStatuses } from '../../data/mockData';
-// import { notificationService } from '../../services/notificationService'; // DISABLED - n8n will handle notifications
+import { notificationService } from '../../services/notificationService';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -179,7 +179,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
 
     try {
       if (mode === 'create') {
-        await tasksService.create(taskData);
+        const newTask = await tasksService.create(taskData);
         
         // Find the assigned user
         const assignedUser = state.users.find(u => u.id === parseInt(formData.assignedTo));
@@ -202,7 +202,7 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
             assignedUser,
             formData.title,
             state.currentUser?.name || 'Master Admin',
-            taskId // Pass the actual task ID
+            newTask.id
           );
         }
 

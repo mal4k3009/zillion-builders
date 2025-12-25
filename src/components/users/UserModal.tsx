@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, User, Mail, Lock, Building } from 'lucide-react';
+import { X, Plus, User, Mail, Lock, Building, MessageSquare } from 'lucide-react';
 import { User as UserType } from '../../types';
 import { useApp } from '../../context/AppContext';
 
@@ -23,7 +23,8 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
     email: '',
     username: '',
     password: '',
-    designation: ''
+    designation: '',
+    whatsappNumber: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +36,8 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
         email: user.email,
         username: user.username,
         password: user.password,
-        designation: user.designation
+        designation: user.designation,
+        whatsappNumber: user.whatsappNumber || ''
       });
     } else {
       setFormData({
@@ -43,7 +45,8 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
         email: '',
         username: '',
         password: '',
-        designation: ''
+        designation: '',
+        whatsappNumber: ''
       });
     }
     setError(''); // Clear any previous errors when modal opens
@@ -109,6 +112,7 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
         password: formData.password,
         role: userRole,
         designation: formData.designation,
+        whatsappNumber: formData.whatsappNumber || undefined,
         status: user?.status || 'active' as const,
         createdAt: user?.createdAt || new Date().toISOString(),
         ...(user?.lastLogin && { lastLogin: user.lastLogin }) // Only include lastLogin if it exists
@@ -201,6 +205,21 @@ export function UserModal({ isOpen, onClose, user, mode }: UserModalProps) {
               placeholder="Enter email address"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1 sm:mr-2" />
+              WhatsApp Number (Optional)
+            </label>
+            <input
+              type="tel"
+              value={formData.whatsappNumber}
+              onChange={(e) => setFormData({ ...formData, whatsappNumber: e.target.value })}
+              className="w-full px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              placeholder="917802032338"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter number with country code (e.g., 917802032338)</p>
           </div>
 
           <div>

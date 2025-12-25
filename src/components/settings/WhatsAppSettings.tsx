@@ -53,16 +53,8 @@ export function WhatsAppSettings() {
 
     setIsSending(true);
     try {
-      const success = await whatsappService.sendMessage(
-        WHATSAPP_CONFIG.defaultRecipient,
-        testMessage
-      );
-      
-      if (success) {
-        alert('Test message sent to webhook successfully! Check your n8n workflow.');
-      } else {
-        alert('Failed to send test message. Check console for details.');
-      }
+      await whatsappService.sendNotificationToAll(testMessage);
+      alert('Test message sent to all 5 contacts via webhook! Check your n8n workflow.');
       setTestMessage('');
     } catch (error) {
       alert('Failed to send test message. Check console for details.');
@@ -76,16 +68,8 @@ export function WhatsAppSettings() {
     setIsSending(true);
     try {
       const testMsg = `🧪 Quick Test from WhatsApp Settings\n\nTimestamp: ${new Date().toLocaleString()}\n\nThis is a test message to verify the webhook integration.`;
-      const success = await whatsappService.sendMessage(
-        WHATSAPP_CONFIG.defaultRecipient,
-        testMsg
-      );
-      
-      if (success) {
-        alert('✅ Quick test sent successfully! Check your n8n workflow.');
-      } else {
-        alert('❌ Quick test failed. Check console for details.');
-      }
+      await whatsappService.sendNotificationToAll(testMsg);
+      alert('✅ Quick test sent to all 5 contacts! Check your n8n workflow.');
     } catch (error) {
       alert('❌ Quick test failed. Check console for details.');
       console.error('Quick test error:', error);
