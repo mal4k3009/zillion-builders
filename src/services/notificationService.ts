@@ -24,25 +24,23 @@ class NotificationService {
     
     // Send personalized message to assigned user if they have WhatsApp
     if (assignedUser?.whatsappNumber) {
-      const personalMessage = `📋 *New Task Assignment*\n\n` +
-                              `Dear ${assignedUserName},\n\n` +
-                              `You have been assigned a new task:\n\n` +
+      const personalMessage = `📋 *New Task Assigned*\n\n` +
+                              `Hello ${assignedUserName},\n\n` +
                               `*Task:* ${taskTitle}\n` +
                               `*Assigned By:* ${assignedBy}\n` +
                               `*Date:* ${new Date().toLocaleDateString()}\n\n` +
-                              `Please log in to the task management system to view complete details and begin work.\n\n` +
+                              `Please check the task management system for details.\n\n` +
                               `Thank you.`;
       
       await whatsappService.sendMessage(assignedUser.whatsappNumber, personalMessage);
     }
     
     // Send notification to all 5 team members
-    const teamMessage = `📋 *Task Assignment Notification*\n\n` +
+    const teamMessage = `📋 *Task Assignment Update*\n\n` +
                        `*Task:* ${taskTitle}\n` +
                        `*Assigned To:* ${assignedUserName}\n` +
-                       `*Assigned By:* ${assignedBy}\n` +
-                       `*Date:* ${new Date().toLocaleDateString()}\n\n` +
-                       `A new task has been assigned in the system.`;
+                       `*By:* ${assignedBy}\n` +
+                       `*Date:* ${new Date().toLocaleDateString()}`;
     
     await whatsappService.sendNotificationToAll(teamMessage);
   }
