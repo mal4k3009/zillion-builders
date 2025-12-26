@@ -51,9 +51,9 @@ function AppContent() {
     return <LoadingSpinner />;
   }
 
-  // Authentication temporarily disabled - auto-login handled in context
+  // Show login page if user is not authenticated
   if (!state.currentUser) {
-    return <LoadingSpinner />;
+    return <LoginPage />;
   }
 
   const renderPage = () => {

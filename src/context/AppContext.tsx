@@ -940,43 +940,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_AUTH_LOADING', payload: true });
       
       try {
-        // Auto-login with master admin (authentication temporarily disabled)
-        console.log('🔓 Auto-logging in with master admin...');
-        const users = await usersService.getAll();
-        let masterAdmin = users.find(u => u.role === 'master' && u.email === 'masteradmin@sentimentai.com');
+        // Wait for Firebase Auth state
+        console.log('🔐 Checking authentication state...');
         
-        if (!masterAdmin) {
-          console.log('⚠️ Master admin not found! Creating master admin...');
+        // Check if user is logged in via Firebase Auth
+        const currentUser = authService.getCurrentUser();
+        
+        if (currentUser) {
+          // Find user in database
+          const users = await usersService.getAll();
+          const dbUser = users.find(u => u.email === currentUser.email);
           
-          // Create master admin user
-          const masterAdminData = {
-            username: 'masteradmin',
-            password: 'MasterAdmin@123',
-            role: 'master' as const,
-            designation: 'admin' as const,
-            name: 'Master Administrator',
-            email: 'masteradmin@sentimentai.com',
-            status: 'active' as const,
-            createdAt: new Date().toISOString()
-          };
-          
-          try {
-            const newUserId = await usersService.create(masterAdminData);
-            masterAdmin = { id: newUserId, ...masterAdminData };
-            console.log('✅ Master admin created successfully with ID:', newUserId);
-          } catch (error) {
-            console.error('❌ Failed to create master admin:', error);
-            dispatch({ type: 'SET_AUTH_LOADING', payload: false });
-            return;
+          if (dbUser && dbUser.status === 'active') {
+            dispatch({ type: 'SET_CURRENT_USER', payload: dbUser });
+            // Load all data initially
+            await loadAllData();
+          } else {
+            console.log('⚠️ User not found in database or inactive');
+            await authService.signOut();
           }
-        }
-        
-        const user = masterAdmin;
-        dispatch({ type: 'SET_CURRENT_USER', payload: user });
-        
-        // Load all data initially
-        if (user) {
-          await loadAllData();
+        } else {
+          console.log('👤 No authenticated user - showing login page');
         }
         
         // Start the automatic task status service
