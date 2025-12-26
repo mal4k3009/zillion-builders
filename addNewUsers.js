@@ -59,6 +59,28 @@ const newUsers = [
     status: 'active',
     whatsappNumber: '+919978223424',
     createdAt: admin.firestore.FieldValue.serverTimestamp()
+  },
+  {
+    name: 'Developer 1',
+    email: 'developer1@sentimentalrealestate.com',
+    username: 'developer1',
+    password: 'Dev1@2025',
+    designation: 'employee',
+    role: 'employee',
+    status: 'active',
+    whatsappNumber: '+919313061975',
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  },
+  {
+    name: 'Developer 2',
+    email: 'developer2@sentimentalrealestate.com',
+    username: 'developer2',
+    password: 'Dev2@2025',
+    designation: 'employee',
+    role: 'employee',
+    status: 'active',
+    whatsappNumber: '+919313061975',
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
   }
 ];
 
