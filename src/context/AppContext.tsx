@@ -282,6 +282,7 @@ interface AppContextType {
   markAllNotificationsAsRead: (userId: number) => Promise<void>;
   createActivity: (activityData: Omit<Activity, 'id'>) => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<boolean>;
+  signInWithUsername: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   // Project management functions
   createProject: (projectData: Omit<Project, 'id' | 'categories'>) => Promise<void>;
@@ -884,7 +885,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // User authentication using Firebase Auth
+  // User authentication using Firebase Auth (legacy - for compatibility)
   const signInWithEmail = async (email: string, password: string): Promise<boolean> => {
     try {
       const result = await authService.signInWithEmail(email, password);
@@ -907,6 +908,57 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         console.log('❌ Authentication failed:', result.error);
         return false;
       }
+    } catch (error) {
+      console.error('Error during authentication:', error);
+      return false;
+    }
+  };
+
+  // Direct Firestore authentication using username and password
+  const signInWithUsername = async (username: string, password: string): Promise<boolean> => {
+    try {
+      console.log('🔐 Authenticating user:', username);
+      
+      // Get all users from Firestore
+      const users = await usersService.getAll();
+      
+      // Find user by username
+      const user = users.find(u => 
+        u.username?.toLowerCase() === username.toLowerCase() && 
+        u.password === password
+      );
+      
+      if (!user) {
+        console.log('❌ Invalid username or password');
+        return false;
+      }
+      
+      // Check if user is active
+      if (user.status !== 'active') {
+        console.log('❌ User account is inactive');
+        return false;
+      }
+      
+      console.log('✅ Authentication successful for:', user.name);
+      
+      // Update user state
+      dispatch({ type: 'SET_CURRENT_USER', payload: user });
+      
+      // Update last login time
+      const updatedUser = { ...user, lastLogin: new Date().toISOString() };
+      await usersService.update(user.id, updatedUser);
+      
+      // Load all data for the authenticated user
+      await loadAllData();
+      
+      // Initialize FCM for push notifications
+      try {
+        await fcmService.initializeForUser(user.id);
+      } catch (fcmError) {
+        console.error('FCM initialization failed:', fcmError);
+      }
+      
+      return true;
     } catch (error) {
       console.error('Error during authentication:', error);
       return false;
@@ -1196,6 +1248,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     markAllNotificationsAsRead,
     createActivity,
     signInWithEmail,
+    signInWithUsername,
     logout,
     createProject,
     updateProject,

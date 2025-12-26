@@ -57,7 +57,7 @@ function AppContent() {
   }
 
   const renderPage = () => {
-    const isManagement = ['master', 'director', 'chairman'].includes(state.currentUser?.role || '');
+    const isManagement = ['master', 'admin', 'director', 'chairman', 'manager'].includes(state.currentUser?.role || '');
     
     switch (currentPage) {
       case 'dashboard':

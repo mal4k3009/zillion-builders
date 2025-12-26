@@ -28,70 +28,70 @@ const navigationItems: NavigationItem[] = [
     label: 'Dashboard',
     icon: <LayoutDashboard className="w-5 h-5" />,
     href: '#dashboard',
-    roles: ['master', 'director', 'chairman', 'employee']
+    roles: ['master', 'admin', 'director', 'chairman', 'manager', 'employee']
   },
   {
     id: 'tasks',
     label: 'Tasks',
     icon: <CheckSquare className="w-5 h-5" />,
     href: '#tasks',
-    roles: ['master', 'director', 'chairman', 'employee']
+    roles: ['master', 'admin', 'director', 'chairman', 'manager', 'employee']
   },
   {
     id: 'projects',
     label: 'Projects',
     icon: <FolderOpen className="w-5 h-5" />,
     href: '#projects',
-    roles: ['master', 'director', 'chairman']
+    roles: ['master', 'admin', 'director', 'chairman', 'manager']
   },
   {
     id: 'categories',
     label: 'Categories',
     icon: <Tags className="w-5 h-5" />,
     href: '#categories',
-    roles: ['master', 'director', 'chairman']
+    roles: ['master', 'admin', 'director', 'chairman', 'manager']
   },
   {
     id: 'users',
     label: 'User Management',
     icon: <Users className="w-5 h-5" />,
     href: '#users',
-    roles: ['master', 'director', 'chairman']
+    roles: ['master', 'admin', 'director', 'chairman', 'manager']
   },
   {
     id: 'chat',
     label: 'Messages',
     icon: <MessageSquare className="w-5 h-5" />,
     href: '#chat',
-    roles: ['master', 'director', 'chairman', 'employee']
+    roles: ['master', 'admin', 'director', 'chairman', 'manager', 'employee']
   },
   {
     id: 'notifications',
     label: 'Notifications',
     icon: <Bell className="w-5 h-5" />,
     href: '#notifications',
-    roles: ['master', 'director', 'chairman', 'employee']
+    roles: ['master', 'admin', 'director', 'chairman', 'manager', 'employee']
   },
   {
     id: 'analytics',
     label: 'Analytics',
     icon: <BarChart3 className="w-5 h-5" />,
     href: '#analytics',
-    roles: ['master', 'director', 'chairman']
+    roles: ['master', 'admin', 'director', 'chairman', 'manager']
   },
   {
     id: 'whatsapp',
     label: 'WhatsApp',
     icon: <Smartphone className="w-5 h-5" />,
     href: '#whatsapp',
-    roles: ['master', 'director', 'chairman']
+    roles: ['master', 'admin', 'director', 'chairman', 'manager']
   },
   {
     id: 'calendar',
     label: 'Calendar',
     icon: <Calendar className="w-5 h-5" />,
     href: '#calendar',
-    roles: ['master', 'director', 'chairman', 'employee']
+    roles: ['master', 'admin', 'director', 'chairman', 'manager', 'employee']
   }
 ];
 

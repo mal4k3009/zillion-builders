@@ -12,8 +12,10 @@ export function UsersPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Check if current user can edit users (only master and chairman)
+  // Check if current user can edit users (only master, admin, manager and chairman)
   const canEdit = state.currentUser?.role === 'master' || 
+                  state.currentUser?.role === 'admin' ||
+                  state.currentUser?.role === 'manager' ||
                   (state.currentUser?.role === 'director' && state.currentUser?.designation === 'chairman');
 
   // Show all users except the current user for master role users

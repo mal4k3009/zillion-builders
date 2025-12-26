@@ -22,7 +22,7 @@ const newUsers = [
     username: 'jignesh',
     password: 'Jignesh@2025',
     designation: 'admin',
-    role: 'admin',
+    role: 'master',
     status: 'active',
     whatsappNumber: '+919925823424',
     createdAt: admin.firestore.FieldValue.serverTimestamp()

@@ -314,19 +314,19 @@ export const tasksService = {
     
     // Check if this task should go directly to chairman approval (skip director)
     if (task.directChairmanApproval || task.skipDirectorApproval) {
-      // Find a chairman user to assign the approval to
+      // Find a chairman or manager user to assign the approval to
       const users = await usersService.getAll();
-      const chairmen = users.filter(u => u.role === 'chairman' || u.designation === 'chairman');
+      const chairmen = users.filter(u => u.role === 'chairman' || u.role === 'manager' || u.designation === 'chairman' || u.designation === 'manager');
       const chairman = chairmen.length > 0 
         ? chairmen.sort((a, b) => b.id - a.id)[0] 
         : users.find(u => u.role === 'master');
       
-      // Create approval entry for chairman (skip director)
+      // Create approval entry for chairman/manager (skip director)
       const chairmanApprovalEntry = {
         id: `${taskId}_chairman_${Date.now()}`,
         taskId,
         approverUserId: chairman?.id || task.createdBy,
-        approverRole: 'chairman' as const,
+        approverRole: (chairman?.role === 'manager' ? 'manager' : 'chairman') as const,
         status: 'pending' as const,
         createdAt: new Date().toISOString()
       };

@@ -4,7 +4,7 @@ export interface User {
   firebaseUid?: string; // Firebase UID stored in Firestore
   username: string;
   password: string;
-  role: 'master' | 'director' | 'employee' | 'chairman';
+  role: 'master' | 'admin' | 'director' | 'manager' | 'employee' | 'chairman';
   designation: string;
   name: string;
   email: string;
@@ -19,7 +19,7 @@ export interface TaskApproval {
   id: string;
   taskId: string;
   approverUserId: number;
-  approverRole: 'director' | 'admin' | 'chairman';
+  approverRole: 'director' | 'admin' | 'manager' | 'chairman';
   status: 'pending' | 'approved' | 'rejected';
   approvedAt?: string;
   rejectionReason?: string;

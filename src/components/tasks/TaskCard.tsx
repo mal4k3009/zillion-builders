@@ -59,9 +59,9 @@ export function TaskCard({ task, onEdit, onDelete, onView }: TaskCardProps) {
   const canDirectorComplete = currentUserRole === 'director' && (task.status === 'assigned_to_director' || task.status === 'in_progress') && task.assignedDirector === currentUserId;
   const canApproveAsDirector = currentUserRole === 'director' && task.status === 'pending_director_approval' && task.assignedDirector === currentUserId;
   const canApproveAsAdmin = currentUserRole === 'master' && task.status === 'pending_admin_approval' && task.createdBy === currentUserId;
-  const canApproveAsChairman = (currentUserRole === 'chairman' || (currentUserRole === 'master' && state.currentUser?.designation === 'chairman')) && 
+  const canApproveAsChairman = (currentUserRole === 'chairman' || currentUserRole === 'manager' || (currentUserRole === 'master' && (state.currentUser?.designation === 'chairman' || state.currentUser?.designation === 'manager'))) && 
     task.status === 'pending_chairman_approval' && 
-    task.approvalChain.some(approval => approval.approverRole === 'chairman' && approval.approverUserId === currentUserId && approval.status === 'pending');
+    task.approvalChain.some(approval => (approval.approverRole === 'chairman' || approval.approverRole === 'manager') && approval.approverUserId === currentUserId && approval.status === 'pending');
   
   // Check if current user can submit for reapproval (rejected tasks)
   const canSubmitForReapproval = task.status === 'rejected' && (
