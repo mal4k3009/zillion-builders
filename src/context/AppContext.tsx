@@ -944,9 +944,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Update user state
       dispatch({ type: 'SET_CURRENT_USER', payload: user });
       
-      // Update last login time
+      // Save user session to localStorage
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      
+      // Update last login time (without awaiting to avoid blocking)
       const updatedUser = { ...user, lastLogin: new Date().toISOString() };
-      await usersService.update(user.id, updatedUser);
+      usersService.update(user.id, updatedUser).catch(err => 
+        console.error('Failed to update last login:', err)
+      );
       
       // Load all data for the authenticated user
       await loadAllData();
@@ -970,6 +975,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const currentUserName = state.currentUser?.name || 'Unknown user';
       
+      // Clear localStorage session
+      localStorage.removeItem('currentUser');
+      
       // Clear authentication
       await authService.signOut();
       
@@ -992,24 +1000,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dispatch({ type: 'SET_AUTH_LOADING', payload: true });
       
       try {
-        // Wait for Firebase Auth state
         console.log('🔐 Checking authentication state...');
         
-        // Check if user is logged in via Firebase Auth
-        const currentUser = authService.getCurrentUser();
+        // For direct Firestore authentication, we check localStorage for session
+        const savedUser = localStorage.getItem('currentUser');
         
-        if (currentUser) {
-          // Find user in database
-          const users = await usersService.getAll();
-          const dbUser = users.find(u => u.email === currentUser.email);
-          
-          if (dbUser && dbUser.status === 'active') {
-            dispatch({ type: 'SET_CURRENT_USER', payload: dbUser });
-            // Load all data initially
-            await loadAllData();
-          } else {
-            console.log('⚠️ User not found in database or inactive');
-            await authService.signOut();
+        if (savedUser) {
+          try {
+            const user = JSON.parse(savedUser);
+            console.log('✅ Found saved user session:', user.name);
+            
+            // Verify user still exists and is active in database
+            const users = await usersService.getAll();
+            const dbUser = users.find(u => u.id === user.id);
+            
+            if (dbUser && dbUser.status === 'active') {
+              dispatch({ type: 'SET_CURRENT_USER', payload: dbUser });
+              // Load all data initially
+              await loadAllData();
+            } else {
+              console.log('⚠️ User not found in database or inactive');
+              localStorage.removeItem('currentUser');
+            }
+          } catch (error) {
+            console.error('Error parsing saved user:', error);
+            localStorage.removeItem('currentUser');
           }
         } else {
           console.log('👤 No authenticated user - showing login page');

@@ -115,12 +115,15 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
     if (assignedUser.role === 'director') {
       taskStatus = 'assigned_to_director';
       additionalFields.assignedDirector = assignedUser.id;
+    } else if (assignedUser.role === 'manager') {
+      taskStatus = 'assigned_to_employee'; // Managers handle tasks like employees
+      additionalFields.assignedEmployee = assignedUser.id;
     } else if (assignedUser.role === 'employee') {
       taskStatus = 'assigned_to_employee';
       additionalFields.assignedEmployee = assignedUser.id;
       
-      // If chairman assigns directly to employee, set up for direct chairman approval
-      if (state.currentUser?.role === 'master' && state.currentUser?.designation === 'chairman') {
+      // If master/admin/manager assigns directly to employee
+      if (['master', 'admin', 'manager'].includes(state.currentUser?.role || '')) {
         additionalFields.skipDirectorApproval = true;
         additionalFields.directChairmanApproval = true;
       } else if (state.currentUser?.role === 'director') {
@@ -311,23 +314,35 @@ export function TaskModal({ isOpen, onClose, task, mode }: TaskModalProps) {
     const currentUserRole = state.currentUser.role;
     const currentUserDesignation = state.currentUser.designation;
     
-    // Chairman (master with chairman designation) can assign to anyone except other chairmen
-    if (currentUserRole === 'master' && currentUserDesignation === 'chairman') {
+    // Master Admin can assign to anyone
+    if (currentUserRole === 'master') {
+      return state.users.filter(u => u.id !== state.currentUser?.id); // Exclude self
+    }
+    
+    // Admin can assign to anyone except master
+    if (currentUserRole === 'admin') {
+      return state.users.filter(u => u.role !== 'master' && u.id !== state.currentUser?.id);
+    }
+    
+    // Manager can assign to employees and other managers
+    if (currentUserRole === 'manager') {
       return state.users.filter(u => 
-        u.role === 'director' || 
-        u.role === 'employee' || 
-        (u.role === 'master' && u.designation !== 'chairman')
+        (u.role === 'employee' || u.role === 'manager') && 
+        u.id !== state.currentUser?.id
       );
     }
     
-    // Master (without chairman designation) can assign to anyone
-    if (currentUserRole === 'master' && currentUserDesignation !== 'chairman') {
-      return state.users;
-    }
-    
-    // Directors can only assign to employees
+    // Directors can assign to employees
     if (currentUserRole === 'director') {
       return state.users.filter(u => u.role === 'employee');
+    }
+    
+    // Chairman can assign to directors, managers, and employees
+    if (currentUserRole === 'chairman') {
+      return state.users.filter(u => 
+        (u.role === 'director' || u.role === 'manager' || u.role === 'employee') &&
+        u.id !== state.currentUser?.id
+      );
     }
     
     // Other roles (employees) cannot assign tasks during creation

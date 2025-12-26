@@ -17,6 +17,7 @@ const db = admin.firestore();
 // New users to add
 const newUsers = [
   {
+    id: 1,
     name: 'Jignesh',
     email: 'jignesh@sentimentalrealestate.com',
     username: 'jignesh',
@@ -28,6 +29,7 @@ const newUsers = [
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   },
   {
+    id: 2,
     name: 'Manthan',
     email: 'manthan@sentimentalrealestate.com',
     username: 'manthan',
@@ -39,6 +41,7 @@ const newUsers = [
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   },
   {
+    id: 3,
     name: 'Ketan',
     email: 'ketan@sentimentalrealestate.com',
     username: 'ketan',
@@ -50,6 +53,7 @@ const newUsers = [
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   },
   {
+    id: 4,
     name: 'Dhaval',
     email: 'dhaval@sentimentalrealestate.com',
     username: 'dhaval',
@@ -61,6 +65,7 @@ const newUsers = [
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   },
   {
+    id: 5,
     name: 'Developer 1',
     email: 'developer1@sentimentalrealestate.com',
     username: 'developer1',
@@ -72,6 +77,7 @@ const newUsers = [
     createdAt: admin.firestore.FieldValue.serverTimestamp()
   },
   {
+    id: 6,
     name: 'Developer 2',
     email: 'developer2@sentimentalrealestate.com',
     username: 'developer2',

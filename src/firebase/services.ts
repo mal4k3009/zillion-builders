@@ -27,29 +27,63 @@ const cleanUndefinedFields = <T extends Record<string, unknown>>(obj: T): Partia
   return cleaned;
 };
 
+// Utility function to convert Firebase string ID to numeric ID
+const generateNumericId = (stringId: string): number => {
+  // Create a simple hash from the string ID
+  let hash = 0;
+  for (let i = 0; i < stringId.length; i++) {
+    const char = stringId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+};
+
 // Users Service
 export const usersService = {
   async getAll(): Promise<User[]> {
     const querySnapshot = await getDocs(collection(db, 'users'));
-    return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
-      ...doc.data() 
-    } as User));
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { 
+        id: data.id || generateNumericId(doc.id), // Use stored id or generate from doc ID
+        firestoreId: doc.id, // Keep the original Firestore doc ID
+        ...data 
+      } as User;
+    });
   },
 
   async getById(id: number): Promise<User | null> {
-    const docRef = doc(db, 'users', id.toString());
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? { id, ...docSnap.data() } as User : null;
+    // First try to find by numeric id field
+    const querySnapshot = await getDocs(collection(db, 'users'));
+    const userDoc = querySnapshot.docs.find(doc => {
+      const data = doc.data();
+      const docId = data.id || generateNumericId(doc.id);
+      return docId === id;
+    });
+    
+    if (userDoc) {
+      const data = userDoc.data();
+      return { 
+        id: data.id || generateNumericId(userDoc.id),
+        firestoreId: userDoc.id,
+        ...data 
+      } as User;
+    }
+    return null;
   },
 
   async getByDepartment(department: string): Promise<User[]> {
     const q = query(collection(db, 'users'), where('department', '==', department));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ 
-      id: parseInt(doc.id), 
-      ...doc.data() 
-    } as User));
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { 
+        id: data.id || generateNumericId(doc.id),
+        firestoreId: doc.id,
+        ...data 
+      } as User;
+    });
   },
 
   async getNextUserId(): Promise<number> {
@@ -104,7 +138,20 @@ export const usersService = {
   async update(id: number, userData: Partial<User>): Promise<void> {
     try {
       console.log('Updating user:', id, 'with data:', userData);
-      const docRef = doc(db, 'users', id.toString());
+      
+      // Find the document by numeric id
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const userDoc = querySnapshot.docs.find(doc => {
+        const data = doc.data();
+        const docId = data.id || generateNumericId(doc.id);
+        return docId === id;
+      });
+      
+      if (!userDoc) {
+        throw new Error(`User with id ${id} not found`);
+      }
+      
+      const docRef = doc(db, 'users', userDoc.id);
       await updateDoc(docRef, {
         ...userData,
         updatedAt: serverTimestamp()
@@ -120,8 +167,20 @@ export const usersService = {
     try {
       console.log('🗑️ Deleting user from Firestore:', id);
       
-      // Delete from Firestore
-      await deleteDoc(doc(db, 'users', id.toString()));
+      // Find the document by numeric id
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const userDoc = querySnapshot.docs.find(doc => {
+        const data = doc.data();
+        const docId = data.id || generateNumericId(doc.id);
+        return docId === id;
+      });
+      
+      if (!userDoc) {
+        throw new Error(`User with id ${id} not found`);
+      }
+      
+      const docRef = doc(db, 'users', userDoc.id);
+      await deleteDoc(docRef);
       
       console.log('✅ User deleted successfully from Firestore');
     } catch (error) {
